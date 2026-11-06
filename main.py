@@ -1,0 +1,93 @@
+import os, logging
+from dotenv import load_dotenv
+load_dotenv()
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import CommandStart, CommandObject, Command
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.fsm.storage.memory import MemoryStorage
+import db
+from game import router as game_router, join_from_start
+from admin import router as admin_router, is_admin
+
+logging.basicConfig(level=os.getenv("LOG_LEVEL","INFO"))
+TOKEN=os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN .env yoki Railway Variables ichida kiritilmagan.")
+
+async def check_subscription(bot,user_id):
+    channels=await db.channels()
+    missing=[]
+    for chat_id,title,link in channels:
+        try:
+            member=await bot.get_chat_member(int(chat_id) if str(chat_id).lstrip("-").isdigit() else chat_id,user_id)
+            if member.status in ("left","kicked"):
+                missing.append((title,link))
+        except Exception:
+            missing.append((title,link))
+    return missing
+
+async def main():
+    await db.init_db()
+    bot=Bot(TOKEN)
+    dp=Dispatcher(storage=MemoryStorage())
+    dp.include_router(game_router)
+    dp.include_router(admin_router)
+
+    @dp.message(CommandStart())
+    async def start(message: Message, command: CommandObject):
+        await db.save_user(message.from_user)
+        if await db.is_blocked(message.from_user.id):
+            await message.answer("⛔ Botdan foydalanishingiz cheklangan.")
+            return
+        await join_from_start(message, command.args or "")
+        missing=await check_subscription(bot,message.from_user.id)
+        if missing:
+            rows=[[InlineKeyboardButton(text="📢 "+title,url=link)] for title,link in missing if link]
+            rows.append([InlineKeyboardButton(text="✅ Tekshirish",callback_data="sub:check")])
+            await message.answer("Botdan foydalanish uchun quyidagi kanal(lar)ga obuna bo‘ling:",reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+            return
+        kb=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🎮 O‘yin qoidalari",callback_data="info:rules")],
+            [InlineKeyboardButton(text="📊 Statistika",callback_data="info:stats")],
+            [InlineKeyboardButton(text="👑 Admin panel",callback_data="info:admin")]
+        ])
+        await message.answer("🎭 <b>MAFIA BOTga xush kelibsiz!</b>\n\nO‘yinni guruhga qo‘shing va guruhda /game buyrug‘ini bering.\n\nKamida 5 o‘yinchi kerak.",reply_markup=kb)
+
+    @dp.callback_query(F.data=="sub:check")
+    async def sub_check(call):
+        missing=await check_subscription(bot,call.from_user.id)
+        if missing:
+            await call.answer("Hali barcha kanallarga obuna bo‘lmagansiz.",show_alert=True)
+        else:
+            await call.message.answer("✅ Obuna tasdiqlandi. /start bosing.")
+            await call.answer()
+
+    @dp.callback_query(F.data=="info:rules")
+    async def rules(call):
+        await call.message.answer("📜 <b>Qoidalar</b>\nMafiya kechasi hujum qiladi. Doktor bir kishini himoya qiladi. Komissar shubhali o‘yinchini tekshiradi. Kunduz hamma muhokama qilib ovoz beradi. Mafiya yo‘q bo‘lsa tinch aholi, mafiyalar soni qolganlar soniga tenglashsa mafiya yutadi.")
+        await call.answer()
+
+    @dp.callback_query(F.data=="info:stats")
+    async def stats(call):
+        u,g,c=await db.stats()
+        await call.message.answer(f"📊 Foydalanuvchilar: {u}\n👥 Guruhlar: {g}\n📢 Kanallar: {c}")
+        await call.answer()
+
+    @dp.callback_query(F.data=="info:admin")
+    async def admin_info(call):
+        if await is_admin(call.from_user.id):
+            await call.message.answer("Admin panel: /admin")
+        else:
+            await call.answer("Siz admin emassiz.",show_alert=True)
+            return
+        await call.answer()
+
+    @dp.message(Command("help"))
+    async def help_cmd(message):
+        await message.answer("/start — botni ochish\n/admin — admin panel (adminlar uchun)\n/guruhda /game — yangi o‘yin")
+
+    await dp.start_polling(bot)
+
+if __name__=="__main__":
+    import asyncio
+    asyncio.run(main())
