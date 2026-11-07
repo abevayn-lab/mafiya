@@ -79,7 +79,8 @@ async def save_group(chat):
             """,
             (chat.id, chat.title or str(chat.id))
         )
-        await db.
+        await db.commit()
+
 
 async def save_group_user(chat_id, user):
     if not user or user.is_bot:
@@ -112,7 +113,6 @@ async def recent_group_users(chat_id, limit=300):
             (chat_id, limit)
         )
         return await cur.fetchall()
-commit()
 
 
 async def group_game(chat_id):
