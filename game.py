@@ -68,6 +68,7 @@ class Game:
         self.phase = "lobby"
         self.round = 0
         self.lobby_message_id = None
+        self.lobby_is_photo = False
         self.task = None
 
         self.start_event = asyncio.Event()
@@ -141,12 +142,20 @@ class Game:
     async def refresh_lobby(self):
         if self.lobby_message_id:
             try:
-                await self.bot.edit_message_caption(
-                    caption=self.lobby_text(),
-                    chat_id=self.chat_id,
-                    message_id=self.lobby_message_id,
-                    reply_markup=self.lobby_keyboard(),
-                )
+                if self.lobby_is_photo:
+                    await self.bot.edit_message_caption(
+                        caption=self.lobby_text(),
+                        chat_id=self.chat_id,
+                        message_id=self.lobby_message_id,
+                        reply_markup=self.lobby_keyboard(),
+                    )
+                else:
+                    await self.bot.edit_message_text(
+                        self.lobby_text(),
+                        chat_id=self.chat_id,
+                        message_id=self.lobby_message_id,
+                        reply_markup=self.lobby_keyboard(),
+                    )
             except Exception:
                 pass
 
@@ -731,6 +740,7 @@ async def create_game(message: Message, command: CommandObject):
         )
 
     game.lobby_message_id = sent.message_id
+    game.lobby_is_photo = bool(sent.photo)
     game.task = asyncio.create_task(game.run())
 
 
