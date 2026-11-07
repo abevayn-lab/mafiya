@@ -993,7 +993,7 @@ async def publish_last_word(message: Message):
 
     words = (message.text or "").strip()
     if not words or words.startswith("/"):
-        PENDING_LAST_WORDS[message.from_user.id] = chat_id
+        PENDING_LAST_WORDS[message.from_user.id] = game
         await message.answer("Iltimos, oddiy matn ko‘rinishida so‘nggi so‘zingizni yozing.")
         return
 
