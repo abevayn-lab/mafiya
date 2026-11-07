@@ -646,7 +646,15 @@ class Game:
         else:
             return False
 
-        await self.send(winner)
+        reveal = "\n".join(
+            f"{'💀' if not p.alive else '🟢'} {self.player_link(p)} — <b>{ROLE_NAMES[p.role]}</b>"
+            for p in self.players.values()
+        )
+        await self.send(
+            f"{winner}\n\n"
+            f"🎭 <b>O‘YIN OXIRIDAGI HAQIQIY ROLLAR:</b>\n"
+            f"{reveal}"
+        )
 
         for p in self.players.values():
             won = (
