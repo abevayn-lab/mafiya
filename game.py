@@ -774,19 +774,19 @@ class Game:
                 or (won_role == "civilian" and p.role != "mafia")
             )
         ]
-        winner_names = "\\n".join(
+        winner_names = "\n".join(
             f"🏆 {self.player_link(p)}" for p in winning_players
         ) or "—"
-        reveal = "\\n".join(
+        reveal = "\n".join(
             f"{'💀' if not p.alive else '🟢'} {self.player_link(p)} — <b>{ROLE_NAMES[p.role]}</b>"
             for p in self.players.values()
         )
         await self.send(
-            f"🩸 <b>ABE VAYN — O‘YIN YAKUNLANDI</b>\\n\\n"
-            f"{winner}\\n\\n"
-            f"🏆 <b>G‘OLIBLAR:</b>\\n{winner_names}\\n\\n"
-            f"🎭 <b>HAQIQIY ROLLAR:</b>\\n{reveal}\\n\\n"
-            f"━━━━━━━━━━━━━━━━━━\\n"
+            f"🩸 <b>ABE VAYN — O‘YIN YAKUNLANDI</b>\n\n"
+            f"{winner}\n\n"
+            f"🏆 <b>G‘OLIBLAR:</b>\n{winner_names}\n\n"
+            f"🎭 <b>HAQIQIY ROLLAR:</b>\n{reveal}\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
             f"Yana bir raund uchun /game buyrug‘ini bering."
         )
 
@@ -844,14 +844,14 @@ async def invite_random_players(message: Message):
         )
         return
 
-    mentions = "\\n".join(
-        f"🎲 <a href=\\"tg://user?id={user_id}\\">{escape(name)}</a>"
+    mentions = "\n".join(
+        f'🎲 <a href="tg://user?id={user_id}">{escape(name)}</a>'
         for user_id, name in selected
     )
     await message.answer(
-        "📣 <b>ABE VAYN SIZNI O‘YINGA CHAQIRYAPTI!</b>\\n\\n"
-        "Tasodifiy tanlangan 10 tagacha guruh a’zosi:\\n"
-        f"{mentions}\\n\\n"
+        "📣 <b>ABE VAYN SIZNI O‘YINGA CHAQIRYAPTI!</b>\n\n"
+        "Tasodifiy tanlangan 10 tagacha guruh a’zosi:\n"
+        f"{mentions}\n\n"
         "🎭 Kim jasur? /game orqali o‘yinga qo‘shiling!"
     )
 
