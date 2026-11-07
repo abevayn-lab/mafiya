@@ -338,7 +338,7 @@ class Game:
                 "civilian": "Kunduz muhokama qiling va ovoz berib mafiyani toping.",
             }
             text = (
-                f"🎭 <b>ABE VAYN MAFIA</b>\n\n"
+                f"🎭 <b>SIZNING ROLINGIZ</b>\n\n"
                 f"Sizning rolingiz: <b>{ROLE_NAMES[p.role]}</b>\n\n"
                 f"{role_descriptions[p.role]}\n\n"
                 f"🤫 Rolingizni sir saqlang."
