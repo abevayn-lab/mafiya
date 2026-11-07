@@ -50,16 +50,24 @@ async def main():
             await message.answer("Botdan foydalanish uchun quyidagi kanal(lar)ga obuna bo‘ling:",reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
             return
         await join_from_start(message, command.args or "")
+        me = await bot.get_me()
         kb=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎮 O‘yin qoidalari",callback_data="info:rules")],
-            [InlineKeyboardButton(text="📊 Statistika",callback_data="info:stats")],
-            [InlineKeyboardButton(text="👑 Admin panel",callback_data="info:admin")]
+            [InlineKeyboardButton(text="♟ GURUHGA QO‘SHISH",url=f"https://t.me/{me.username}?startgroup=add")],
+            [InlineKeyboardButton(text="📜 O‘YIN QOIDALARI",callback_data="info:rules"),
+             InlineKeyboardButton(text="📊 STATISTIKA",callback_data="info:stats")],
+            [InlineKeyboardButton(text="👑 ADMIN PANEL",callback_data="info:admin")]
         ])
         welcome_text = (
-            "🎭 <b>ABE VAYN MAFIA</b>\n\n"
-            "Xush kelibsiz! O‘yinni guruhga qo‘shing va guruhda /game buyrug‘ini bering.\n\n"
-            "👥 Kamida 4, ko‘pi bilan 20 o‘yinchi.\n"
-            "🏆 /top — reyting | 👤 /profile — shaxsiy statistika"
+            "🩸 <b>ABE VAYN MAFIA</b>\n"
+            "<i>ISHONCH • AQL • STRATEGIYA</i>\n\n"
+            "Shahar uxlaydi. Ammo tun hukmdorlari uyg‘oq...\n"
+            "Do‘stlaringizni guruhga yig‘ing va kimga ishonishni aniqlang.\n\n"
+            "♟ <b>O‘YINNI BOSHLASH</b>\n"
+            "1. Botni guruhga qo‘shing.\n"
+            "2. Guruhda /game buyrug‘ini yuboring.\n"
+            "3. O‘yinchilar botga /start yozib, qo‘shilish tugmasini bosing.\n\n"
+            "👥 4–20 o‘yinchi  •  🌙 Tun / ☀️ Kunduz\n"
+            "🏆 /top — reyting  |  👤 /profile — profilingiz"
         )
         try:
             photo = BufferedInputFile(
