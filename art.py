@@ -37,7 +37,10 @@ def _font(size, bold=False, serif=False):
             return ImageFont.truetype(path, size)
         except OSError:
             pass
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
 
 def _gradient(top, bottom):
     im = Image.new("RGB", (W, H))
@@ -164,30 +167,42 @@ def role_card(role):
 def phase_card(phase):
     key = "night" if phase == "night" else "day"
     top, bottom, accent, light = PALETTES[key]
-    im = _gradient(top,bottom)
-    draw = ImageDraw.Draw(im,"RGBA")
-    _stars(draw,accent,seed=4 if key=="night" else 9,count=100)
-    _city(draw,accent,865,seed=23)
-    _frame(draw,accent,"ABE VAYN  •  SHAHAR TARIXI")
-    cx,cy=W//2,405
-    if key=="night":
-        draw.ellipse((cx-165,cy-165,cx+165,cy+165),fill=light+(245,))
-        draw.ellipse((cx-75,cy-205,cx+230,cy+100),fill=bottom+(255,))
-        title,sub,symbol="TUN","SIRLI VAQT...","☾"
+    im = _gradient(top, bottom)
+    draw = ImageDraw.Draw(im, "RGBA")
+    _stars(draw, accent, seed=4 if key == "night" else 9, count=95)
+    _city(draw, accent, 875, seed=23)
+    _frame(draw, accent, "ABE VAYN  •  MAXFIY SHAHAR")
+    cx = W // 2
+
+    # Large, unmistakable moon / sun illustration.
+    if key == "night":
+        draw.ellipse((cx-175, 205, cx+175, 555), fill=light+(255,))
+        draw.ellipse((cx-65, 155, cx+235, 455), fill=top+(255,))
+        title, sub, kicker = "TUN", "MAXFIY HARAKATLAR BOSHLANDI", "SHAHAR USTIGA SUKUT CHO‘KDI"
+        symbol_color = light
     else:
-        draw.ellipse((cx-135,cy-135,cx+135,cy+135),fill=light+(255,))
-        for a in range(0,360,30):
-            x1=cx+math.cos(math.radians(a))*175
-            y1=cy+math.sin(math.radians(a))*175
-            x2=cx+math.cos(math.radians(a))*220
-            y2=cy+math.sin(math.radians(a))*220
-            draw.line((x1,y1,x2,y2),fill=(*accent,235),width=12)
-        title,sub,symbol="KUNDUZ","HAQIQAT VAQTI!","☀"
-    _panel(draw,accent,(65,760,W-65,1060),34)
-    draw.text((cx,835),symbol,font=_font(65,True,True),fill=light+(255,),anchor="mm")
-    draw.text((cx,930),title,font=_font(94,True,True),fill=(255,255,255,255),anchor="mm")
-    draw.text((cx,1005),sub,font=_font(27,True),fill=light+(255,),anchor="mm")
-    draw.text((cx,1115),"ISHONCH  •  AQL  •  STRATEGIYA",font=_font(19,True),fill=(245,235,238,230),anchor="mm")
+        draw.ellipse((cx-132, 235, cx+132, 499), fill=light+(255,))
+        for angle in range(0, 360, 30):
+            x1 = cx + math.cos(math.radians(angle))*165
+            y1 = 367 + math.sin(math.radians(angle))*165
+            x2 = cx + math.cos(math.radians(angle))*215
+            y2 = 367 + math.sin(math.radians(angle))*215
+            draw.line((x1, y1, x2, y2), fill=(*accent, 255), width=13)
+        title, sub, kicker = "KUNDUZ", "MUHOKAMA VA OVOZ BERISH", "HAQIQAT YUZAGA CHIQADI"
+        symbol_color = light
+
+    # High-contrast information panel with large type for phone screens.
+    draw.rounded_rectangle((54, 690, W-54, 1050), radius=38,
+                           fill=(5, 6, 14, 248), outline=(*accent, 255), width=4)
+    draw.rounded_rectangle((72, 708, W-72, 1032), radius=28,
+                           outline=(255,255,255,70), width=2)
+    draw.text((cx, 770), kicker, font=_font(22, True), fill=symbol_color+(255,), anchor="mm")
+    draw.line((170, 815, W-170, 815), fill=(*accent, 230), width=3)
+    draw.text((cx, 890), title, font=_font(104, True, True),
+              fill=(255,255,255,255), anchor="mm", stroke_width=1, stroke_fill=(*accent,180))
+    draw.text((cx, 978), sub, font=_font(27, True), fill=light+(255,), anchor="mm")
+    draw.text((cx, 1120), "ABE VAYN  •  ISHONCH  •  AQL  •  STRATEGIYA",
+              font=_font(18, True), fill=(245,235,238,235), anchor="mm")
     return _png(im)
 
 def welcome_card():
@@ -206,7 +221,7 @@ def welcome_card():
     draw.polygon([(cx-310,900),(cx-210,565),(cx-100,510),(cx,665),(cx+100,510),(cx+210,565),(cx+310,900)],fill=(2,3,9,255))
     _panel(draw,accent,(58,785,W-58,1095),32)
     draw.text((cx,845),"ABE VAYN",font=_font(76,True,True),fill=(255,255,255,255),anchor="mm")
-    draw.text((cx,935),"MAFIA",font=_font(108,True,True),fill=light+(255,),anchor="mm",stroke_width=2,stroke_fill=(*accent,170))
+    draw.text((cx,935),"MAXFIY O‘YIN",font=_font(68,True,True),fill=light+(255,),anchor="mm",stroke_width=2,stroke_fill=(*accent,170))
     draw.text((cx,1020),"ISHONCH  •  AQL  •  STRATEGIYA",font=_font(20,True),fill=(245,235,240,255),anchor="mm")
     draw.text((cx,1150),"PRIVATE GAME EXPERIENCE  /  EST. 2026",font=_font(14,True),fill=(220,220,230,210),anchor="mm")
     return _png(im)
