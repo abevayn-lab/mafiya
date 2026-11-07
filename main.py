@@ -10,7 +10,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, B
 from art import welcome_card
 from aiogram.fsm.storage.memory import MemoryStorage
 import db
-from game import router as game_router, join_from_start
+from game import router as game_router, join_from_start, is_group_admin
 from admin import router as admin_router, is_admin
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL","INFO"))
@@ -39,6 +39,8 @@ async def main():
 
     @dp.message(CommandStart())
     async def start(message: Message, command: CommandObject):
+        if message.chat.type != "private" and not await is_group_admin(bot, message.chat.id, message.from_user.id):
+            return
         await db.save_user(message.from_user)
         me = await bot.get_me()
         bot_url = f"https://t.me/{me.username}"
@@ -136,6 +138,8 @@ async def main():
 
     @dp.message(Command("myid"))
     async def my_id_cmd(message: Message):
+        if message.chat.type != "private" and not await is_group_admin(bot, message.chat.id, message.from_user.id):
+            return
         await message.answer(
             f"🆔 Sizning Telegram ID raqamingiz:\n<code>{message.from_user.id}</code>\n\n"
             "Admin bo‘lish uchun shu raqamni Railway Variables ichidagi ADMIN_IDS ga yozing."
@@ -143,6 +147,8 @@ async def main():
 
     @dp.message(Command("top"))
     async def top_cmd(message: Message):
+        if message.chat.type != "private" and not await is_group_admin(bot, message.chat.id, message.from_user.id):
+            return
         rows = await db.top_players(10)
         if not rows:
             await message.answer("🏆 Hozircha reyting bo‘sh. O‘yin o‘ynab ochko to‘plang!")
@@ -155,6 +161,8 @@ async def main():
 
     @dp.message(Command("profile"))
     async def profile_cmd(message: Message):
+        if message.chat.type != "private" and not await is_group_admin(bot, message.chat.id, message.from_user.id):
+            return
         points, wins, games = await db.get_result(message.from_user.id)
         rate = round((wins / games) * 100) if games else 0
         await message.answer(
@@ -167,6 +175,8 @@ async def main():
 
     @dp.message(Command("help"))
     async def help_cmd(message):
+        if message.chat.type != "private" and not await is_group_admin(bot, message.chat.id, message.from_user.id):
+            return
         await message.answer("/start — botni ochish\n/game — guruhda o‘yin\n/players — o‘yinchilar\n/status — o‘yin holati\n/profile — profil\n/top — reyting\n/myid — Telegram ID\n/admin — admin panel")
 
     await dp.start_polling(bot)
