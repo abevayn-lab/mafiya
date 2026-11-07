@@ -95,7 +95,7 @@ class Game:
 
     def lobby_text(self):
         names = "\n".join(
-            f"{i}. {self.player_link(p)}"
+            f"{i}. {escape(p.name[:24])}"
             for i, p in enumerate(self.players.values(), 1)
         ) or "— hali hech kim yo‘q —"
 
