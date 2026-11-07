@@ -25,6 +25,7 @@ router = Router()
 
 GAMES = {}
 USER_GAME = {}
+PENDING_LAST_WORDS = {}
 
 MAX_PLAYERS = 20
 MIN_PLAYERS_DEFAULT = 4
@@ -515,9 +516,33 @@ class Game:
             dead = self.players[victim]
 
             await self.send(
-                f"🌅 Tong otdi. 💀 {self.player_link(dead)} "
-                f"halok bo‘ldi. ({ROLE_NAMES[dead.role]})"
+                f"🌅 <b>TONG OTDI</b>\n\n"
+                f"💀 {self.player_link(dead)} halok bo‘ldi.\n"
+                f"🎭 Uning roli: <b>{ROLE_NAMES[dead.role]}</b>"
             )
+            try:
+                await self.bot.send_message(
+                    dead.user_id,
+                    "🕯 <b>SIZNI MAFIYA OTIB KETDI</b>\n\n"
+                    "O‘yindan chiqdingiz. Guruhga so‘nggi so‘zingizni "
+                    "qoldirmoqchimisiz?",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="📝 Ha, so‘z qoldiraman",
+                                callback_data=f"lastword:yes:{self.chat_id}",
+                            )
+                        ],
+                        [
+                            InlineKeyboardButton(
+                                text="Yo‘q, rahmat",
+                                callback_data=f"lastword:no:{self.chat_id}",
+                            )
+                        ],
+                    ]),
+                )
+            except Exception:
+                log.exception("Could not send last-word prompt to %s", dead.user_id)
         else:
             await self.send(
                 "🌅 Tong otdi. Bu kecha hech kim halok bo‘lmadi."
@@ -634,10 +659,10 @@ class Game:
                         f"• {self.player_link(voter)} ➜ {self.player_link(target)}"
                     )
             await self.send(
-                "🗳 <b>OVOZ BERISH NATIJALARI</b>\\n\\n"
-                + "\\n".join(vote_lines)
-                + "\\n\\n<b>Jami ovozlar:</b>\\n"
-                + "\\n".join(
+                "📊 <b>RAUND YAKUNI — OVOZLAR</b>\n\n"
+                + "\n".join(vote_lines)
+                + "\n\n<b>Umumiy hisob:</b>\n"
+                + "\n".join(
                     f"• {self.player_link(self.players[uid])}: <b>{count}</b> ta"
                     for uid, count in counts.most_common()
                     if uid in self.players
@@ -689,7 +714,15 @@ class Game:
         if voter_id == target_id:
             return "O‘zingizga ovoz bera olmaysiz."
 
+        if voter_id in self.votes:
+            return "Siz bu raundda allaqachon ovoz bergansiz."
+
         self.votes[voter_id] = target_id
+        await self.send(
+            "🗳 <b>OVOZ BERILDI</b>\n\n"
+            f"{self.player_link(voter)}  ➜  {self.player_link(target)}\n"
+            f"<i>Jami ovozlar: {len(self.votes)}/{len(self.alive())}</i>"
+        )
 
         if len(self.votes) >= len(self.alive()):
             self.phase_event.set()
@@ -900,6 +933,62 @@ async def lobby_cancel(call: CallbackQuery):
             "Bu o‘yinni endi bekor qilib bo‘lmaydi.",
             show_alert=True,
         )
+
+
+@router.callback_query(F.data.startswith("lastword:"))
+async def last_word_choice(call: CallbackQuery):
+    try:
+        _, choice, chat_id = call.data.split(":")
+        chat_id = int(chat_id)
+    except ValueError:
+        await call.answer("So‘rov noto‘g‘ri.", show_alert=True)
+        return
+
+    game = GAMES.get(chat_id)
+    player = game.players.get(call.from_user.id) if game else None
+    if not player or player.alive:
+        await call.answer("Bu so‘rov endi faol emas.", show_alert=True)
+        return
+
+    if choice == "yes":
+        PENDING_LAST_WORDS[call.from_user.id] = chat_id
+        await call.answer("Yozishingiz mumkin.")
+        await call.message.answer(
+            "✍️ <b>SO‘NGGI SO‘ZINGIZNI YOZING</b>\n"
+            "Xabaringiz guruhga ismingiz bilan chiqariladi. "
+            "500 belgigacha yozing."
+        )
+    else:
+        PENDING_LAST_WORDS.pop(call.from_user.id, None)
+        await call.answer("Mayli. O‘yinda qatnashganingiz uchun rahmat.")
+
+
+@router.message(
+    F.chat.type == "private",
+    F.text,
+    lambda message: bool(message.from_user and message.from_user.id in PENDING_LAST_WORDS),
+)
+async def publish_last_word(message: Message):
+    chat_id = PENDING_LAST_WORDS.pop(message.from_user.id, None)
+    game = GAMES.get(chat_id) if chat_id is not None else None
+    if not game:
+        await message.answer("O‘yin yakunlangan. So‘nggi so‘zingizni yuborib bo‘lmadi.")
+        return
+
+    words = (message.text or "").strip()
+    if not words or words.startswith("/"):
+        PENDING_LAST_WORDS[message.from_user.id] = chat_id
+        await message.answer("Iltimos, oddiy matn ko‘rinishida so‘nggi so‘zingizni yozing.")
+        return
+
+    words = words[:500]
+    player = game.players.get(message.from_user.id)
+    name = game.player_link(player) if player else escape(message.from_user.full_name)
+    await game.send(
+        "🕯 <b>SO‘NGGI SO‘Z</b>\n\n"
+        f"{name}:\n<i>{escape(words)}</i>"
+    )
+    await message.answer("✅ So‘nggi so‘zingiz guruhga yuborildi.")
 
 
 @router.callback_query(F.data.startswith("act:"))
