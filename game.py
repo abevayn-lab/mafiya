@@ -539,8 +539,8 @@ class Game:
                 await self.bot.send_message(
                     dead.user_id,
                     "🕯 <b>SIZNI MAFIYA OTIB KETDI</b>\n\n"
-                    "O‘yindan chiqdingiz. Guruhga so‘nggi so‘zingizni "
-                    "qoldirmoqchimisiz?",
+                    "O‘yindan chiqdingiz. Jon berishdan oldin guruhga "
+                    "so‘nggi gapingizni baqirib aytmoqchimisiz? 😄",
                     reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                         [
                             InlineKeyboardButton(
@@ -698,9 +698,10 @@ class Game:
                 out.alive = False
 
                 await self.send(
-                    f"⚖️ Ovoz bilan chiqarildi: "
-                    f"{self.player_link(out)} — "
-                    f"{ROLE_NAMES[out.role]}."
+                    "⚖️ <b>XALQ HUKMI IJRO ETILDI!</b>\n\n"
+                    f"🪢 {self.player_link(out)} ko‘pchilik ovozi bilan "
+                    "dor ostiga yuborildi va o‘yindan chiqarildi!\n"
+                    f"🎭 Uning haqiqiy roli: <b>{ROLE_NAMES[out.role]}</b>"
                 )
             else:
                 await self.send(
@@ -970,8 +971,9 @@ async def last_word_choice(call: CallbackQuery):
         LAST_WORD_GAMES.pop(call.from_user.id, None)
         await call.answer("Yozishingiz mumkin.")
         await call.message.answer(
-            "✍️ <b>SO‘NGGI SO‘ZINGIZNI YOZING</b>\n"
-            "Xabaringiz guruhga ismingiz bilan chiqariladi. "
+            "📢 <b>OXIRGI GAPPINGIZNI YOZING!</b>\n"
+            "Xabaringiz guruhga ismingiz bilan: "
+            "«Jon berishidan oldin baqirdi...» deb chiqariladi. 😄\n"
             "500 belgigacha yozing."
         )
     else:
@@ -1001,8 +1003,9 @@ async def publish_last_word(message: Message):
     player = game.players.get(message.from_user.id)
     name = game.player_link(player) if player else escape(message.from_user.full_name)
     await game.send(
-        "🕯 <b>SO‘NGGI SO‘Z</b>\n\n"
-        f"{name}:\n<i>{escape(words)}</i>"
+        "📢 <b>SO‘NGGI NAFASIDAN OLDIN BAQIRDI!</b>\n\n"
+        f"😵‍💫 {name}:\n"
+        f"«<i>{escape(words)}</i>»"
     )
     await message.answer("✅ So‘nggi so‘zingiz guruhga yuborildi.")
 
