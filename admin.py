@@ -38,7 +38,7 @@ def panel_kb():
 async def admin_panel(message: Message):
     if not await is_admin(message.from_user.id):
         return
-    await message.answer("👑 <b>MAFIA BOT — ADMIN PANEL</b>\nKerakli bo‘limni tanlang:", reply_markup=panel_kb())
+    await message.answer("🩸 <b>ABE VAYN MAFIA</b>\n👑 <b>BOSHQARUV PANELI</b>\nKerakli bo‘limni tanlang:", reply_markup=panel_kb())
 
 @router.callback_query(F.data.startswith("adm:"))
 async def admin_actions(call: CallbackQuery, state: FSMContext):
