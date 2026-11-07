@@ -1035,7 +1035,7 @@ async def game_status(message: Message):
         f"🔄 Raund: {game.round}"
     )
 
-@router.message(F.text | F.caption)
+@router.message((F.text | F.caption) & F.chat.type.in_({"group", "supergroup"}) & ~F.text.startswith("/"))
 async def anti_advertising(message: Message):
     """Delete promotional links and forwarded promotions from non-admin members."""
     if message.chat.type not in ("group", "supergroup"):
