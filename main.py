@@ -1,4 +1,5 @@
 import os, logging
+from html import escape
 from dotenv import load_dotenv
 load_dotenv()
 from aiogram import Bot, Dispatcher, F
@@ -53,7 +54,20 @@ async def main():
             [InlineKeyboardButton(text="📊 Statistika",callback_data="info:stats")],
             [InlineKeyboardButton(text="👑 Admin panel",callback_data="info:admin")]
         ])
-        await message.answer("🎭 <b>MAFIA BOTga xush kelibsiz!</b>\n\nO‘yinni guruhga qo‘shing va guruhda /game buyrug‘ini bering.\n\nKamida 5 o‘yinchi kerak.",reply_markup=kb)
+        welcome_text = (
+            "🎭 <b>ABE VAYN MAFIA</b>\n\n"
+            "Xush kelibsiz! O‘yinni guruhga qo‘shing va guruhda /game buyrug‘ini bering.\n\n"
+            "👥 Kamida 5, ko‘pi bilan 20 o‘yinchi.\n"
+            "🏆 /top — reyting | 👤 /profile — shaxsiy statistika"
+        )
+        try:
+            await message.answer_photo(
+                "https://api.dicebear.com/9.x/shapes/png?seed=AbeVaynMafia&backgroundColor=111827",
+                caption=welcome_text,
+                reply_markup=kb,
+            )
+        except Exception:
+            await message.answer(welcome_text, reply_markup=kb)
 
     @dp.callback_query(F.data=="sub:check")
     async def sub_check(call):
@@ -93,7 +107,7 @@ async def main():
         lines = ["🏆 <b>ABE VAYN MAFIA — TOP 10</b>", ""]
         for i, row in enumerate(rows, 1):
             name = row[1] or f"Player {row[0]}"
-            lines.append(f"{i}. {name} — <b>{row[2]} ochko</b> | 🏅 {row[3]} g‘alaba")
+            lines.append(f"{i}. {escape(name)} — <b>{row[2]} ochko</b> | 🏅 {row[3]} g‘alaba")
         await message.answer("\n".join(lines))
 
     @dp.message(Command("profile"))
