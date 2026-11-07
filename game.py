@@ -27,6 +27,14 @@ USER_GAME = {}
 MAX_PLAYERS = 20
 MIN_PLAYERS_DEFAULT = 5
 
+ROLE_IMAGE_URLS = {
+    "mafia": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynMafia&backgroundColor=18181b",
+    "doctor": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynDoctor&backgroundColor=164e63",
+    "detective": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynDetective&backgroundColor=1e3a8a",
+    "civilian": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynCivilian&backgroundColor=365314",
+}
+
+
 ROLE_NAMES = {
     "mafia": "🔪 Mafiya",
     "doctor": "💉 Shifokor",
@@ -349,7 +357,12 @@ class Game:
                         caption=text,
                     )
                 else:
-                    await self.bot.send_message(p.user_id, text)
+                    # Generated role portrait keeps cards visual even before custom art is uploaded.
+                    await self.bot.send_photo(
+                        p.user_id,
+                        ROLE_IMAGE_URLS[p.role],
+                        caption=text,
+                    )
             except Exception:
                 await self.send(
                     f"⚠️ {escape(p.name)} botga shaxsiy xabarda "
@@ -893,4 +906,46 @@ async def stop_game(message: Message):
         "🛑 <b>O‘YIN TO‘XTATILDI!</b>\n\n"
         "O‘yin xona egasi yoki guruh administratori tomonidan bekor qilindi.\n\n"
         "🎮 Yangi o‘yin boshlash uchun /game buyrug‘ini bering."
+    )
+
+
+
+@router.message(Command("players"))
+async def list_players(message: Message):
+    game = GAMES.get(message.chat.id)
+    if not game:
+        await message.answer("ℹ️ Hozir bu guruhda faol o‘yin yo‘q.")
+        return
+    alive = [p for p in game.players.values() if p.alive]
+    dead = [p for p in game.players.values() if not p.alive]
+    lines = ["👥 <b>O‘YINCHILAR RO‘YXATI</b>", ""]
+    lines.append(f"🟢 Tiriklar ({len(alive)}):")
+    lines.extend(f"• {game.player_link(p)}" for p in alive)
+    if dead:
+        lines.extend(["", f"💀 O‘yindan chiqqanlar ({len(dead)}):"])
+        lines.extend(f"• {game.player_link(p)}" for p in dead)
+    await message.answer("\n".join(lines))
+
+
+@router.message(Command("status"))
+async def game_status(message: Message):
+    game = GAMES.get(message.chat.id)
+    if not game:
+        await message.answer("ℹ️ Hozir bu guruhda faol o‘yin yo‘q. /game bilan boshlang.")
+        return
+    phase_names = {
+        "lobby": "Qabul davom etmoqda",
+        "starting": "Boshlanmoqda",
+        "playing": "O‘yin davom etmoqda",
+        "night": "🌙 Tun",
+        "day": "☀️ Kun",
+        "cancelled": "Bekor qilingan",
+        "stopped": "To‘xtatilgan",
+    }
+    await message.answer(
+        f"🎭 <b>O‘YIN HOLATI</b>\n"
+        f"📍 Bosqich: {phase_names.get(game.phase, game.phase)}\n"
+        f"👥 O‘yinchilar: {len(game.players)}\n"
+        f"🟢 Tiriklar: {len(game.alive())}\n"
+        f"🔄 Raund: {game.round}"
     )
