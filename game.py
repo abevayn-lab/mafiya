@@ -323,7 +323,7 @@ class Game:
                 f"🎭 <b>ABE VAYN MAFIA</b>\n\n"
                 f"Sizning rolingiz: <b>{ROLE_NAMES[p.role]}</b>\n\n"
                 f"{role_descriptions[p.role]}\n\n"
-                f"🤫 Roolingizni sir saqlang."
+                f"🤫 Rolingizni sir saqlang."
             )
 
             if p.role == "mafia":
