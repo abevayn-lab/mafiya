@@ -16,7 +16,8 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
 )
-from aiogram.types import FSInputFile
+from aiogram.types import BufferedInputFile
+from art import role_card, phase_card
 
 log = logging.getLogger("mafia.game")
 router = Router()
@@ -26,13 +27,6 @@ USER_GAME = {}
 
 MAX_PLAYERS = 20
 MIN_PLAYERS_DEFAULT = 4
-
-ROLE_IMAGE_URLS = {
-    "mafia": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynMafia&backgroundColor=18181b",
-    "doctor": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynDoctor&backgroundColor=164e63",
-    "detective": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynDetective&backgroundColor=1e3a8a",
-    "civilian": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynCivilian&backgroundColor=365314",
-}
 
 
 ROLE_NAMES = {
@@ -202,28 +196,19 @@ class Game:
             return None
 
     async def send_phase_image(self, phase, caption, reply_markup=None):
-        colors = {
-            "night": "111827",
-            "day": "fef3c7",
-        }
-        seeds = {
-            "night": "AbeVaynMafiaMidnight",
-            "day": "AbeVaynMafiaSunrise",
-        }
-        url = (
-            "https://api.dicebear.com/9.x/shapes/png?seed="
-            + seeds[phase]
-            + "&backgroundColor="
-            + colors[phase]
-        )
         try:
+            photo = BufferedInputFile(
+                phase_card(phase).getvalue(),
+                filename=f"abevayn_{phase}.png",
+            )
             await self.bot.send_photo(
                 self.chat_id,
-                url,
+                photo,
                 caption=caption,
                 reply_markup=reply_markup,
             )
         except Exception:
+            log.exception("Could not send phase artwork")
             await self.send(caption, reply_markup=reply_markup)
 
     async def remove_lobby_buttons(self):
@@ -374,28 +359,24 @@ class Game:
                     )
 
             try:
-                card_path = Path("assets/roles") / f"{p.role}.jpg"
-                if card_path.is_file():
-                    await self.bot.send_photo(
-                        p.user_id,
-                        FSInputFile(card_path),
-                        caption=text,
-                    )
-                else:
-                    # Use a generated portrait until custom role artwork is added to assets/roles.
-                    try:
-                        await self.bot.send_photo(
-                            p.user_id,
-                            ROLE_IMAGE_URLS[p.role],
-                            caption=text,
-                        )
-                    except Exception:
-                        await self.bot.send_message(p.user_id, text)
-            except Exception:
-                await self.send(
-                    f"⚠️ {escape(p.name)} botga shaxsiy xabarda "
-                    f"/start yubormagan. Rolini olishi uchun botga yozsin."
+                card = BufferedInputFile(
+                    role_card(p.role).getvalue(),
+                    filename=f"abevayn_{p.role}.png",
                 )
+                await self.bot.send_photo(
+                    p.user_id,
+                    card,
+                    caption=text,
+                )
+            except Exception:
+                log.exception("Could not send role card to %s", p.user_id)
+                try:
+                    await self.bot.send_message(p.user_id, text)
+                except Exception:
+                    await self.send(
+                        f"⚠️ {escape(p.name)} botga shaxsiy xabarda "
+                        f"/start yuborsin, shunda rol kartasini oladi."
+                    )
 
     def night_keyboard(self, player):
         targets = [
