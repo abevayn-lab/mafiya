@@ -34,6 +34,15 @@ async def init_db():
             added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS group_members(
+            chat_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            full_name TEXT NOT NULL,
+            username TEXT,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(chat_id,user_id)
+        );
+
         CREATE TABLE IF NOT EXISTS game_results(
             user_id INTEGER PRIMARY KEY,
             points INTEGER DEFAULT 0,
@@ -70,7 +79,40 @@ async def save_group(chat):
             """,
             (chat.id, chat.title or str(chat.id))
         )
+        await db.
+
+async def save_group_user(chat_id, user):
+    if not user or user.is_bot:
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO group_members(chat_id,user_id,full_name,username,last_seen)
+            VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+            ON CONFLICT(chat_id,user_id) DO UPDATE SET
+                full_name=excluded.full_name,
+                username=excluded.username,
+                last_seen=CURRENT_TIMESTAMP
+            """,
+            (chat_id, user.id, user.full_name, user.username)
+        )
         await db.commit()
+
+
+async def recent_group_users(chat_id, limit=300):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            """
+            SELECT user_id,full_name
+            FROM group_members
+            WHERE chat_id=?
+            ORDER BY last_seen DESC
+            LIMIT ?
+            """,
+            (chat_id, limit)
+        )
+        return await cur.fetchall()
+commit()
 
 
 async def group_game(chat_id):
