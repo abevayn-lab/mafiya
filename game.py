@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+from collections import Counter
 from pathlib import Path
 from dataclasses import dataclass
 from html import escape
@@ -14,6 +15,7 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    ChatPermissions,
 )
 from aiogram.types import BufferedInputFile
 from art import role_card
@@ -69,6 +71,8 @@ class Game:
         self.lobby_message_id = None
         self.lobby_is_photo = False
         self.task = None
+        self.original_permissions = None
+        self.permissions_saved = False
 
         self.start_event = asyncio.Event()
         self.phase_event = asyncio.Event()
@@ -206,6 +210,51 @@ class Game:
             log.exception("Could not send group message")
             return None
 
+    async def set_group_chat(self, discussion=False):
+        """Allow text discussion only during the day; lock member messages at night."""
+        try:
+            if not self.permissions_saved:
+                chat = await self.bot.get_chat(self.chat_id)
+                self.original_permissions = chat.permissions
+                self.permissions_saved = True
+
+            permissions = ChatPermissions(
+                can_send_messages=discussion,
+                can_send_audios=False,
+                can_send_documents=False,
+                can_send_photos=False,
+                can_send_videos=False,
+                can_send_video_notes=False,
+                can_send_voice_notes=False,
+                can_send_polls=False,
+                can_send_other_messages=False,
+                can_add_web_page_previews=False,
+            )
+            await self.bot.set_chat_permissions(
+                self.chat_id,
+                permissions=permissions,
+                use_independent_chat_permissions=True,
+            )
+            return True
+        except Exception:
+            log.exception("Could not change group chat permissions")
+            return False
+
+    async def restore_group_chat(self):
+        if not self.permissions_saved:
+            return
+        try:
+            permissions = self.original_permissions or ChatPermissions(
+                can_send_messages=True
+            )
+            await self.bot.set_chat_permissions(
+                self.chat_id,
+                permissions=permissions,
+                use_independent_chat_permissions=True,
+            )
+        except Exception:
+            log.exception("Could not restore group chat permissions")
+
     async def send_phase_image(self, phase, caption, reply_markup=None):
         # Group gameplay is text-only: no photos or videos are posted here.
         return await self.send(caption, reply_markup=reply_markup)
@@ -249,6 +298,7 @@ class Game:
                 self.phase = "starting"
 
             await self.remove_lobby_buttons()
+            await self.set_group_chat(discussion=False)
 
             await db.group_game(self.chat_id)
 
@@ -285,6 +335,7 @@ class Game:
             )
 
         finally:
+            await self.restore_group_chat()
             self.phase = "ended"
 
             for uid in list(self.players):
@@ -392,6 +443,7 @@ class Game:
 
     async def night(self):
         self.phase = "night"
+        await self.set_group_chat(discussion=False)
         self.phase_event = asyncio.Event()
         self.night_actions = {}
 
@@ -529,6 +581,7 @@ class Game:
 
     async def day(self):
         self.phase = "day"
+        await self.set_group_chat(discussion=True)
         self.votes = {}
         self.phase_event = asyncio.Event()
 
@@ -564,6 +617,9 @@ class Game:
 
         if self.phase != "day":
             return
+
+        # Muhokama va ovoz berish tugadi — keyingi tun uchun chatni yoping.
+        await self.set_group_chat(discussion=False)
 
         counts = Counter(self.votes.values())
 
@@ -680,6 +736,9 @@ async def create_game(message: Message, command: CommandObject):
         await message.answer(
             "🎭 O‘yinni guruh ichida /game buyrug‘i bilan boshlang."
         )
+        return
+
+    if not await is_group_admin(message.bot, message.chat.id, message.from_user.id):
         return
 
     chat_id = message.chat.id
@@ -934,6 +993,8 @@ async def stop_game(message: Message):
 
 @router.message(Command("players"))
 async def list_players(message: Message):
+    if message.chat.type != "private" and not await is_group_admin(message.bot, message.chat.id, message.from_user.id):
+        return
     game = GAMES.get(message.chat.id)
     if not game:
         await message.answer("ℹ️ Hozir bu guruhda faol o‘yin yo‘q.")
@@ -951,6 +1012,8 @@ async def list_players(message: Message):
 
 @router.message(Command("status"))
 async def game_status(message: Message):
+    if message.chat.type != "private" and not await is_group_admin(message.bot, message.chat.id, message.from_user.id):
+        return
     game = GAMES.get(message.chat.id)
     if not game:
         await message.answer("ℹ️ Hozir bu guruhda faol o‘yin yo‘q. /game bilan boshlang.")
