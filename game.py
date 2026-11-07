@@ -25,7 +25,7 @@ GAMES = {}
 USER_GAME = {}
 
 MAX_PLAYERS = 20
-MIN_PLAYERS_DEFAULT = 5
+MIN_PLAYERS_DEFAULT = 4
 
 ROLE_IMAGE_URLS = {
     "mafia": "https://api.dicebear.com/9.x/bottts/png?seed=AbeVaynMafia&backgroundColor=18181b",
@@ -513,7 +513,11 @@ class Game:
                         f"— <b>{result}</b>",
                     )
                 except Exception:
-                    pass
+                    log.exception("Could not send detective result to %s", uid)
+
+        # Return to the main game loop after the night has fully resolved.
+        if self.phase == "night":
+            self.phase = "playing"
 
     async def record_night_action(self, user_id, target_id):
         p = self.players.get(user_id)
@@ -611,6 +615,10 @@ class Game:
                 )
         else:
             await self.send("⚖️ Ovoz berilmadi.")
+
+        # Return to the main game loop so winner checks and the next night run.
+        if self.phase == "day":
+            self.phase = "playing"
 
     async def record_vote(self, voter_id, target_id):
         voter = self.players.get(voter_id)
