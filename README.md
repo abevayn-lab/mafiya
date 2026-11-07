@@ -1,4 +1,4 @@
-# ABE VAYN MAFIA — Telegram game bot
+# ABE VAYN — Telegram game bot
 
 A branded Uzbek-language Mafia game bot with original noir artwork.
 
