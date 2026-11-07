@@ -40,22 +40,50 @@ async def main():
     @dp.message(CommandStart())
     async def start(message: Message, command: CommandObject):
         await db.save_user(message.from_user)
+        me = await bot.get_me()
+        bot_url = f"https://t.me/{me.username}"
+        start_url = f"{bot_url}?start=join_{message.chat.id}"
+
+        # In groups, never post the long private welcome screen.
+        if message.chat.type != "private":
+            await message.answer(
+                "🩸 <b>ABE VAYN</b>\n"
+                "<i>ISHONCH • AQL • STRATEGIYA</i>\n"
+                "━━━━━━━━━━━━━━━━━━\n"
+                "🎭 O‘yinga kirish va maxfiy rolingizni olish uchun "
+                "botning shaxsiy chatiga o‘ting.\n"
+                f"👇 <a href=\"{bot_url}\">ABE VAYN BOTINI OCHISH</a>\n"
+                "1. Havolani bosing.\n"
+                "2. Botda <b>START</b> tugmasini bosing.\n"
+                "3. O‘yin boshlanganda rolingiz shaxsiy xabarda keladi.",
+                disable_web_page_preview=True,
+            )
+            return
+
         if await db.is_blocked(message.from_user.id):
             await message.answer("⛔ Botdan foydalanishingiz cheklangan.")
             return
-        missing=await check_subscription(bot,message.from_user.id)
+
+        missing = await check_subscription(bot, message.from_user.id)
         if missing:
-            rows=[[InlineKeyboardButton(text="📢 "+title,url=link)] for title,link in missing if link]
-            rows.append([InlineKeyboardButton(text="✅ Tekshirish",callback_data="sub:check")])
-            await message.answer("Botdan foydalanish uchun quyidagi kanal(lar)ga obuna bo‘ling:",reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+            rows = [[InlineKeyboardButton(text="📢 " + title, url=link)] for title, link in missing if link]
+            rows.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="sub:check")])
+            await message.answer(
+                "Botdan foydalanish uchun quyidagi kanal(lar)ga obuna bo‘ling:",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+            )
             return
-        await join_from_start(message, command.args or "")
-        me = await bot.get_me()
-        kb=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="♟ GURUHGA QO‘SHISH",url=f"https://t.me/{me.username}?startgroup=add")],
-            [InlineKeyboardButton(text="📜 O‘YIN QOIDALARI",callback_data="info:rules"),
-             InlineKeyboardButton(text="📊 STATISTIKA",callback_data="info:stats")],
-            [InlineKeyboardButton(text="👑 ADMIN PANEL",callback_data="info:admin")]
+
+        # Deep-link join: add player, confirm, and do not send a second welcome card.
+        if command.args and command.args.startswith("join_"):
+            await join_from_start(message, command.args)
+            return
+
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="♟ GURUHGA QO‘SHISH", url=f"{bot_url}?startgroup=add")],
+            [InlineKeyboardButton(text="📜 O‘YIN QOIDALARI", callback_data="info:rules"),
+             InlineKeyboardButton(text="📊 STATISTIKA", callback_data="info:stats")],
+            [InlineKeyboardButton(text="👑 ADMIN PANEL", callback_data="info:admin")]
         ])
         welcome_text = (
             "🩸 <b>ABE VAYN</b>\n"
@@ -64,21 +92,16 @@ async def main():
             "Do‘stlaringizni guruhga yig‘ing va kimga ishonishni aniqlang.\n\n"
             "♟ <b>O‘YINNI BOSHLASH</b>\n"
             "1. Botni guruhga qo‘shing.\n"
-            "2. Guruhda /game buyrug‘ini yuboring.\n"
-            "3. O‘yinchilar botga /start yozib, qo‘shilish tugmasini bosing.\n\n"
+            "2. Guruhda <code>/game</code> buyrug‘ini yuboring.\n"
+            "3. O‘yinchilar guruhdagi <b>ROLNI OLISH UCHUN BOTGA O‘TISH</b> tugmasini bosing. "
+            "Bot ochilgach <b>START</b> bosing.\n\n"
+            "🔐 <b>Har bir rol faqat shaxsiy chatda yuboriladi.</b>\n"
             "👥 4–20 o‘yinchi  •  🌙 Tun / ☀️ Kunduz\n"
-            "🏆 /top — reyting  |  👤 /profile — profilingiz"
+            "🏆 <code>/top</code> — reyting  |  👤 <code>/profile</code> — profil"
         )
         try:
-            photo = BufferedInputFile(
-                welcome_card().getvalue(),
-                filename="abevayn_welcome.png",
-            )
-            await message.answer_photo(
-                photo,
-                caption=welcome_text,
-                reply_markup=kb,
-            )
+            photo = BufferedInputFile(welcome_card().getvalue(), filename="abevayn_welcome.png")
+            await message.answer_photo(photo, caption=welcome_text, reply_markup=kb)
         except Exception:
             logging.exception("Welcome artwork could not be sent")
             await message.answer(welcome_text, reply_markup=kb)
