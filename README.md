@@ -1,27 +1,40 @@
-# Mafia Telegram Bot — professional starter
+# ABE VAYN MAFIA — Telegram game bot
 
-## Imkoniyatlar
-- Guruhda `/game` orqali lobby ochish; ro‘yxatdagi o‘yinchilar jonli ko‘rinadi.
-- Kamida 5, ko‘pi bilan 20 o‘yinchi.
-- Rollar shaxsiy chatga yuboriladi: mafiya, doktor, komissar, tinch aholi.
-- Kecha: mafiya hujum qiladi, doktor himoya qiladi, komissar tekshiradi.
-- Kunduz: muhokama taymeri, so‘ng guruhdagi ovoz berish.
-- Ovoz natijasi, chiqarilgan o‘yinchi roli va g‘olib aniqlanadi.
-- Tugmali admin panel, statistika, broadcast, admin qo‘shish, bloklash.
-- Majburiy kanal qo‘shish/o‘chirish va obunani tekshirish.
+A branded Uzbek-language Mafia game bot with original noir artwork.
 
-## Muhim sozlash
-1. Railway Variables ga `BOT_TOKEN` va `ADMIN_IDS=8007670371` kiriting.
-2. `requirements.txt`, `main.py`, `game.py`, `admin.py`, `db.py` ni GitHub root papkasiga joylang.
-3. Railway start command: `python main.py`.
-4. Botni guruhga admin qiling (xabar yuborish va xabarni tahrirlash huquqi).
-5. O‘yinchilar botga shaxsiy chatda `/start` yozishi shart — Telegram bot foydalanuvchiga birinchi bo‘lib DM yubora olmaydi.
-6. Majburiy kanal ishlatmoqchi bo‘lsangiz, botni kanalga admin qilib, `/admin` → Majburiy kanal orqali qo‘shing.
+## O‘yin imkoniyatlari
+- Guruhda `/game` bilan chiroyli rasmli o‘yin xonasi ochiladi.
+- 4–20 o‘yinchi; ro‘yxat qo‘shilgan sari yangilanadi.
+- Har bir o‘yinchiga shaxsiy chatda o‘z roliga mos alohida karta yuboriladi.
+- Rollar: Mafiya, Shifokor, Komissar va Tinch aholi.
+- Tun va kunduz bosqichlari alohida original rasmlar bilan ko‘rsatiladi.
+- Mafiya hujumi, shifokor himoyasi, komissar tekshiruvi va kunduzgi ovoz berish.
+- O‘yin yakunida g‘olib jamoa va barcha o‘yinchilarning haqiqiy rollari e’lon qilinadi.
+- Profil, reyting, guruh statistikasi va admin panel.
 
-## Rasm
-`assets/night.jpg` va `assets/day.jpg` rasmlari kecha/kunduz bosqichida Telegram guruhiga avtomatik yuboriladi. `assets/mafia_concept.png` umumiy dizayn konsepsiyasidir.
+## Buyruqlar
+- `/start` — bot menyusi va guruhga qo‘shish
+- `/game` — guruhda yangi o‘yin
+- `/game fast` — tezkor o‘yin
+- `/players` — o‘yinchilar ro‘yxati
+- `/status` — o‘yin holati
+- `/stop` — o‘yinni to‘xtatish (xona egasi yoki guruh admini)
+- `/profile` — shaxsiy statistika
+- `/top` — reyting
+- `/myid` — Telegram ID
+- `/admin` — admin panel
 
-## Cheklovlar
-- O‘yin holati hozir RAMda saqlanadi: Railway qayta ishga tushsa davom etayotgan o‘yin to‘xtaydi.
-- Taymerlar va o‘yin bir Railway instance uchun mo‘ljallangan.
-- Avval test guruhida tekshiring.
+## Railway sozlamalari
+1. Variables ichida `BOT_TOKEN` kiriting.
+2. `ADMIN_IDS` ga admin Telegram ID larini vergul bilan yozing.
+3. Start Command: `python main.py`.
+4. Bitta Railway replica ishlating — polling rejimida ikkinchi nusxa TelegramConflictError chiqarishi mumkin.
+5. Botni guruhga qo‘shing va xabar yuborish huquqini bering.
+6. Har bir o‘yinchi botga shaxsiy chatda `/start` yuborishi kerak. Telegram bot foydalanuvchi birinchi yozmaguncha unga shaxsiy xabar yubora olmaydi.
+
+## Texnik ma’lumot
+- Python 3.11+
+- aiogram 3
+- SQLite (aiosqlite)
+- Pillow orqali original 3:4 portret kartalar yaratiladi.
+- O‘yin holati RAMda saqlanadi; Railway qayta ishga tushsa davom etayotgan o‘yin to‘xtaydi.
