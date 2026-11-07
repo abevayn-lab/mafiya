@@ -42,7 +42,6 @@ async def main():
         await db.save_user(message.from_user)
         me = await bot.get_me()
         bot_url = f"https://t.me/{me.username}"
-        start_url = f"{bot_url}?start=join_{message.chat.id}"
 
         # In groups, never post the long private welcome screen.
         if message.chat.type != "private":
