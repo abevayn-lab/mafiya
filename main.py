@@ -58,7 +58,7 @@ async def main():
             [InlineKeyboardButton(text="👑 ADMIN PANEL",callback_data="info:admin")]
         ])
         welcome_text = (
-            "🩸 <b>ABE VAYN MAFIA</b>\n"
+            "🩸 <b>ABE VAYN</b>\n"
             "<i>ISHONCH • AQL • STRATEGIYA</i>\n\n"
             "Shahar uxlaydi. Ammo tun hukmdorlari uyg‘oq...\n"
             "Do‘stlaringizni guruhga yig‘ing va kimga ishonishni aniqlang.\n\n"
@@ -125,7 +125,7 @@ async def main():
         if not rows:
             await message.answer("🏆 Hozircha reyting bo‘sh. O‘yin o‘ynab ochko to‘plang!")
             return
-        lines = ["🏆 <b>ABE VAYN MAFIA — TOP 10</b>", ""]
+        lines = ["🏆 <b>ABE VAYN — TOP 10</b>", ""]
         for i, row in enumerate(rows, 1):
             name = row[1] or f"Player {row[0]}"
             lines.append(f"{i}. {escape(name)} — <b>{row[2]} ochko</b> | 🏅 {row[3]} g‘alaba")
