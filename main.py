@@ -98,6 +98,13 @@ async def main():
             return
         await call.answer()
 
+    @dp.message(Command("myid"))
+    async def my_id_cmd(message: Message):
+        await message.answer(
+            f"🆔 Sizning Telegram ID raqamingiz:\n<code>{message.from_user.id}</code>\n\n"
+            "Admin bo‘lish uchun shu raqamni Railway Variables ichidagi ADMIN_IDS ga yozing."
+        )
+
     @dp.message(Command("top"))
     async def top_cmd(message: Message):
         rows = await db.top_players(10)
@@ -124,7 +131,7 @@ async def main():
 
     @dp.message(Command("help"))
     async def help_cmd(message):
-        await message.answer("/start — botni ochish\n/game — guruhda o‘yin\n/players — o‘yinchilar\n/status — o‘yin holati\n/profile — profil\n/top — reyting\n/admin — admin panel")
+        await message.answer("/start — botni ochish\n/game — guruhda o‘yin\n/players — o‘yinchilar\n/status — o‘yin holati\n/profile — profil\n/top — reyting\n/myid — Telegram ID\n/admin — admin panel")
 
     await dp.start_polling(bot)
 
