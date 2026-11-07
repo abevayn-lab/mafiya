@@ -95,7 +95,7 @@ def role_card(role):
     _silhouette(draw, role, accent)
     name, subtitle, hint, symbol = ROLE_DATA[role]
     draw.rounded_rectangle((58, 825, W-58, 1115), radius=36, fill=(4, 7, 16, 205), outline=(*accent, 180), width=3)
-    draw.text((W//2, 865), "ABE VAYN  •  MAFIA", font=_font(29, True), fill=(*accent, 255), anchor="mm")
+    draw.text((W//2, 865), "SIZNING ROLINGIZ", font=_font(31, True), fill=(*accent, 255), anchor="mm")
     draw.text((W//2, 940), name, font=_font(64, True), fill=(255,255,255,255), anchor="mm", stroke_width=1, stroke_fill=(*accent, 150))
     draw.text((W//2, 1000), subtitle, font=_font(23, True), fill=(*accent, 255), anchor="mm")
     draw.text((W//2, 1060), hint, font=_font(22), fill=(235,235,240,255), anchor="mm")
@@ -123,7 +123,7 @@ def phase_card(phase):
             x2 = cx + math.cos(math.radians(a))*245
             y2 = cy + math.sin(math.radians(a))*245
             draw.line((x1,y1,x2,y2), fill=(*accent,220), width=13)
-        title, sub = "KUN", "SHAHAR UYG'ONDI!"
+        title, sub = "KUNDUZ", "SHAHAR UYG'ONDI!"
     draw.text((cx, 820), title, font=_font(105, True), fill=(255,255,255,255), anchor="mm")
     draw.text((cx, 930), sub, font=_font(32, True), fill=(*accent,255), anchor="mm")
     draw.text((cx, 1080), "ABE VAYN  •  MAFIA", font=_font(28, True), fill=(*accent,255), anchor="mm")
