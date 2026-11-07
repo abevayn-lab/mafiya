@@ -2,7 +2,6 @@ import asyncio
 import logging
 import random
 from pathlib import Path
-from collections import Counter
 from dataclasses import dataclass
 from html import escape
 from contextlib import suppress
@@ -17,7 +16,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
 )
 from aiogram.types import BufferedInputFile
-from art import role_card, phase_card, welcome_card
+from art import role_card
 
 log = logging.getLogger("mafia.game")
 router = Router()
@@ -121,7 +120,7 @@ class Game:
         return InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="🎮 O‘yinga qo‘shilish",
+                    text="🔐 ROLNI OLISH UCHUN BOTGA O‘TISH",
                     url=join_url,
                 )
             ],
@@ -207,20 +206,8 @@ class Game:
             return None
 
     async def send_phase_image(self, phase, caption, reply_markup=None):
-        try:
-            photo = BufferedInputFile(
-                phase_card(phase).getvalue(),
-                filename=f"abevayn_{phase}.png",
-            )
-            await self.bot.send_photo(
-                self.chat_id,
-                photo,
-                caption=caption,
-                reply_markup=reply_markup,
-            )
-        except Exception:
-            log.exception("Could not send phase artwork")
-            await self.send(caption, reply_markup=reply_markup)
+        # Group gameplay is text-only: no photos or videos are posted here.
+        return await self.send(caption, reply_markup=reply_markup)
 
     async def remove_lobby_buttons(self):
         if self.lobby_message_id:
@@ -326,19 +313,11 @@ class Game:
 
         self.phase = "playing"
 
-        role_summary = Counter(
-            p.role for p in self.players.values()
-        )
-
-        summary = ", ".join(
-            f"{ROLE_NAMES[k]} ×{v}"
-            for k, v in role_summary.items()
-        )
-
         await self.send(
-            f"🎬 <b>O‘YIN BOSHLANDI!</b>\n"
-            f"Rollar: {summary}\n"
-            f"Rollar shaxsiy xabarda yuborildi."
+            "🎬 <b>O‘YIN BOSHLANDI!</b>\n"
+            "🔐 Har bir o‘yinchi o‘z rolini botning shaxsiy chatida ko‘radi.\n"
+            f"👉 @{self.bot_username} botiga o‘ting va <code>/start</code> bosing.\n"
+            "🤫 Rollaringizni sir saqlang. Omad!"
         )
 
         for p in self.players.values():
@@ -385,8 +364,9 @@ class Game:
                     await self.bot.send_message(p.user_id, text)
                 except Exception:
                     await self.send(
-                        f"⚠️ {escape(p.name)} botga shaxsiy xabarda "
-                        f"/start yuborsin, shunda rol kartasini oladi."
+                        f"⚠️ {escape(p.name)}, rolingizni olish uchun "
+                        f"@{self.bot_username} botiga o‘ting va <code>/start</code> bosing. "
+                        "Keyingi o‘yinda rol kartangiz shaxsiy yuboriladi."
                     )
 
     def night_keyboard(self, player):
@@ -725,22 +705,12 @@ async def create_game(message: Message, command: CommandObject):
 
     GAMES[chat_id] = game
 
-    try:
-        poster = BufferedInputFile(welcome_card().getvalue(), filename="abevayn_lobby.png")
-        sent = await message.answer_photo(
-            poster,
-            caption=game.lobby_text(),
-            reply_markup=game.lobby_keyboard(),
-        )
-    except Exception:
-        log.exception("Lobby poster could not be sent; using text fallback")
-        sent = await message.answer(
-            game.lobby_text(),
-            reply_markup=game.lobby_keyboard(),
-        )
-
+    sent = await message.answer(
+        game.lobby_text(),
+        reply_markup=game.lobby_keyboard(),
+    )
     game.lobby_message_id = sent.message_id
-    game.lobby_is_photo = bool(sent.photo)
+    game.lobby_is_photo = False
     game.task = asyncio.create_task(game.run())
 
 
