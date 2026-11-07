@@ -1,19 +1,19 @@
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import math
+import random
 
+# Original ABE VAYN MAFIA artwork. Portrait 3:4 cards fit Telegram photo previews.
 W, H = 900, 1200
-
 PALETTES = {
-    "mafia": ((18, 10, 20), (112, 25, 42), (245, 190, 145)),
-    "doctor": ((7, 25, 35), (15, 105, 112), (170, 235, 220)),
-    "detective": ((10, 19, 43), (44, 76, 132), (190, 215, 255)),
-    "civilian": ((28, 26, 17), (120, 91, 40), (255, 225, 160)),
-    "night": ((5, 10, 26), (27, 42, 79), (180, 200, 255)),
-    "day": ((65, 34, 17), (190, 116, 48), (255, 225, 165)),
-    "welcome": ((12, 9, 22), (100, 26, 51), (245, 195, 150)),
+    "mafia": ((7, 7, 13), (66, 12, 27), (236, 55, 72)),
+    "doctor": ((5, 13, 23), (12, 48, 62), (75, 205, 205)),
+    "detective": ((5, 10, 25), (23, 39, 76), (112, 164, 255)),
+    "civilian": ((18, 13, 10), (70, 43, 20), (226, 174, 91)),
+    "night": ((3, 6, 18), (13, 23, 51), (132, 164, 232)),
+    "day": ((42, 20, 13), (112, 58, 25), (255, 190, 93)),
+    "welcome": ((4, 5, 11), (42, 8, 20), (238, 52, 70)),
 }
-
 ROLE_DATA = {
     "mafia": ("MAFIYA", "TUN HUKMDORI", "TUNDA NISHON TANLANG", "♠"),
     "doctor": ("SHIFOKOR", "JAMOANING HIMOYACHISI", "HAR TUN BIR KISHINI ASRANG", "+"),
@@ -22,122 +22,160 @@ ROLE_DATA = {
 }
 
 def _font(size, bold=False):
-    candidates = [
+    paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
     ]
-    for path in candidates:
+    for path in paths:
         try:
             return ImageFont.truetype(path, size)
         except OSError:
-            pass
+            continue
     return ImageFont.load_default()
 
-def _gradient(top, bottom):
+def _background(top, bottom):
     im = Image.new("RGB", (W, H))
     px = im.load()
     for y in range(H):
         t = y / (H - 1)
-        c = tuple(int(top[i] * (1 - t) + bottom[i] * t) for i in range(3))
+        base = tuple(int(top[i] * (1-t) + bottom[i] * t) for i in range(3))
         for x in range(W):
-            glow = max(0, 1 - math.sqrt(((x - W * .5) / (W * .8)) ** 2 + ((y - H * .42) / (H * .9)) ** 2))
-            px[x, y] = tuple(min(255, int(v + glow * 13)) for v in c)
-    return im
+            glow = max(0.0, 1 - math.sqrt(((x-W*.5)/(W*.85))**2 + ((y-H*.38)/(H*.95))**2))
+            px[x, y] = tuple(min(255, int(c + glow*11)) for c in base)
+    return im.convert("RGBA")
 
-def _ornaments(draw, accent):
-    for r in (260, 330, 405):
-        draw.ellipse((W//2-r, 245-r, W//2+r, 245+r), outline=(*accent, 45), width=3)
-    for x in range(55, W, 90):
-        draw.line((x, 0, x-160, H), fill=(255,255,255,9), width=1)
-    draw.line((54, 90, 220, 90), fill=(*accent, 190), width=4)
-    draw.line((W-220, H-100, W-54, H-100), fill=(*accent, 190), width=4)
+def _city(draw, accent, horizon=790):
+    # Layered original city skyline, kept below the character silhouette.
+    rng = random.Random(19)
+    for layer, color in [(0, (5, 7, 13, 220)), (1, (9, 10, 18, 245))]:
+        x = -10
+        while x < W:
+            width = rng.randint(38, 100)
+            height = rng.randint(100, 300) if layer == 0 else rng.randint(70, 220)
+            y = horizon - height + (30 if layer == 0 else 0)
+            draw.rectangle((x, y, x+width, horizon+80), fill=color)
+            if rng.random() > .35:
+                draw.polygon([(x-5,y+8),(x+width//2,y-25),(x+width+5,y+8)], fill=color)
+            for wx in range(x+10, x+width-5, 18):
+                for wy in range(y+25, horizon-10, 28):
+                    if rng.random() > .56:
+                        draw.rectangle((wx,wy,wx+5,wy+9), fill=(*accent, 90))
+            x += width - 4
+
+def _frame(draw, accent):
+    draw.rounded_rectangle((24, 24, W-24, H-24), radius=38, outline=(*accent, 190), width=4)
+    draw.rounded_rectangle((42, 42, W-42, H-42), radius=29, outline=(255,255,255,35), width=2)
+    for x in (66, W-66):
+        for y in (66, H-66):
+            draw.ellipse((x-6,y-6,x+6,y+6), fill=(*accent,220))
+    draw.line((76, 112, 260, 112), fill=(*accent,210), width=4)
+    draw.line((W-260, H-112, W-76, H-112), fill=(*accent,210), width=4)
 
 def _silhouette(draw, role, accent):
-    # A clean, original noir-style character silhouette, different for each role.
     cx = W // 2
-    draw.ellipse((cx-185, 180, cx+185, 550), fill=(5, 7, 14, 125), outline=(*accent, 150), width=5)
+    # Backlight ring
+    draw.ellipse((cx-235, 125, cx+235, 595), outline=(*accent,75), width=5)
+    draw.ellipse((cx-205, 155, cx+205, 565), outline=(255,255,255,24), width=2)
     if role == "mafia":
-        # Hat, shadowed face and coat
-        draw.polygon([(cx-185, 315), (cx-125, 220), (cx+120, 220), (cx+185, 315)], fill=(8, 8, 14, 255))
-        draw.rounded_rectangle((cx-140, 290, cx+140, 500), radius=75, fill=(18, 13, 20, 255))
-        draw.polygon([(cx-280, 790), (cx-175, 510), (cx+175, 510), (cx+280, 790)], fill=(9, 8, 15, 255))
-        draw.polygon([(cx-90, 510), (cx, 675), (cx+90, 510)], fill=(*accent, 210))
+        draw.polygon([(cx-205,310),(cx-155,205),(cx+150,205),(cx+205,310)], fill=(3,4,9,255))
+        draw.polygon([(cx-205,310),(cx,280),(cx+205,310),(cx+150,345),(cx-150,345)], fill=(12,10,16,255))
+        draw.ellipse((cx-112,295,cx+112,520), fill=(17,13,17,255))
+        draw.polygon([(cx-315,850),(cx-220,500),(cx-95,455),(cx,610),(cx+95,455),(cx+220,500),(cx+315,850)], fill=(5,6,12,255))
+        draw.polygon([(cx-92,500),(cx,670),(cx+92,500)], fill=(*accent,210))
+        draw.line((cx-72,365,cx+72,365), fill=(*accent,180), width=7)
     elif role == "doctor":
-        draw.ellipse((cx-108, 250, cx+108, 470), fill=(24, 37, 43, 255))
-        draw.rounded_rectangle((cx-150, 430, cx+150, 760), radius=70, fill=(205, 221, 215, 255))
-        draw.polygon([(cx-60, 450), (cx, 580), (cx+60, 450)], fill=(18, 105, 112, 255))
-        draw.rounded_rectangle((cx-28, 515, cx+28, 650), radius=12, fill=(17, 104, 112, 255))
-        draw.rounded_rectangle((cx-90, 565, cx+90, 610), radius=12, fill=(17, 104, 112, 255))
+        draw.ellipse((cx-112,245,cx+112,465), fill=(20,30,35,255))
+        draw.rounded_rectangle((cx-165,430,cx+165,810), radius=68, fill=(196,207,207,255))
+        draw.polygon([(cx-65,445),(cx,570),(cx+65,445)], fill=(10,36,48,255))
+        draw.rectangle((cx-19,540,cx+19,690), fill=(18,130,145,255))
+        draw.rectangle((cx-83,595,cx+83,633), fill=(18,130,145,255))
+        draw.line((cx+112,520,cx+112,760), fill=(255,255,255,170), width=5)
     elif role == "detective":
-        draw.polygon([(cx-190, 340), (cx-110, 215), (cx+130, 215), (cx+190, 340)], fill=(9, 13, 26, 255))
-        draw.ellipse((cx-105, 275, cx+105, 495), fill=(27, 32, 43, 255))
-        draw.polygon([(cx-280, 790), (cx-180, 500), (cx+180, 500), (cx+280, 790)], fill=(10, 17, 34, 255))
-        draw.line((cx-90, 370, cx+90, 370), fill=(*accent, 230), width=13)
-        draw.ellipse((cx-20, 350, cx+20, 390), fill=(*accent, 255))
+        draw.polygon([(cx-190,325),(cx-130,215),(cx+130,215),(cx+190,325)], fill=(4,7,16,255))
+        draw.ellipse((cx-112,280,cx+112,500), fill=(22,25,34,255))
+        draw.polygon([(cx-300,850),(cx-205,500),(cx-105,455),(cx,590),(cx+105,455),(cx+205,500),(cx+300,850)], fill=(5,9,20,255))
+        draw.line((cx-82,370,cx+82,370), fill=(*accent,230), width=12)
+        draw.ellipse((cx-19,351,cx+19,389), fill=(*accent,255))
+        draw.line((cx+135,560,cx+215,780), fill=(*accent,170), width=8)
     else:
-        draw.ellipse((cx-110, 260, cx+110, 490), fill=(60, 43, 29, 255))
-        draw.rounded_rectangle((cx-160, 455, cx+160, 790), radius=85, fill=(44, 47, 39, 255))
-        draw.polygon([(cx-75, 475), (cx, 590), (cx+75, 475)], fill=(*accent, 210))
-    # Soft halo behind the figure
-    draw.ellipse((cx-230, 160, cx+230, 620), outline=(*accent, 110), width=4)
+        draw.ellipse((cx-112,270,cx+112,495), fill=(73,48,32,255))
+        draw.rounded_rectangle((cx-170,455,cx+170,820), radius=80, fill=(35,37,35,255))
+        draw.polygon([(cx-75,475),(cx,600),(cx+75,475)], fill=(*accent,210))
+        draw.ellipse((cx-18,545,cx+18,581), fill=(12,13,17,255))
 
 def _png(im):
     out = BytesIO()
-    im.save(out, format="PNG", optimize=True)
+    im.save(out, "PNG", optimize=True)
     out.seek(0)
     return out
 
 def role_card(role):
-    top, bottom, accent = PALETTES.get(role, PALETTES["civilian"])
-    im = _gradient(top, bottom).convert("RGBA")
+    role = role if role in ROLE_DATA else "civilian"
+    top, bottom, accent = PALETTES[role]
+    im = _background(top, bottom)
     draw = ImageDraw.Draw(im, "RGBA")
-    _ornaments(draw, accent)
+    _city(draw, accent, 850)
     _silhouette(draw, role, accent)
+    _frame(draw, accent)
     name, subtitle, hint, symbol = ROLE_DATA[role]
-    draw.rounded_rectangle((58, 825, W-58, 1115), radius=36, fill=(4, 7, 16, 205), outline=(*accent, 180), width=3)
-    draw.text((W//2, 865), "SIZNING ROLINGIZ", font=_font(31, True), fill=(*accent, 255), anchor="mm")
-    draw.text((W//2, 940), name, font=_font(64, True), fill=(255,255,255,255), anchor="mm", stroke_width=1, stroke_fill=(*accent, 150))
-    draw.text((W//2, 1000), subtitle, font=_font(23, True), fill=(*accent, 255), anchor="mm")
-    draw.text((W//2, 1060), hint, font=_font(22), fill=(235,235,240,255), anchor="mm")
-    draw.text((W//2, 700), symbol, font=_font(100, True), fill=(*accent, 225), anchor="mm")
+    # Opaque lower panel guarantees all text remains inside Telegram crop-safe area.
+    draw.rounded_rectangle((66, 820, W-66, 1115), radius=34, fill=(3,5,11,238), outline=(*accent,220), width=3)
+    draw.text((W//2, 866), "SIZNING ROLINGIZ", font=_font(30, True), fill=(*accent,255), anchor="mm")
+    draw.text((W//2, 945), name, font=_font(66 if len(name)<12 else 53, True), fill=(255,255,255,255), anchor="mm")
+    draw.text((W//2, 1012), subtitle, font=_font(23, True), fill=(*accent,255), anchor="mm")
+    draw.text((W//2, 1070), hint, font=_font(20, True), fill=(235,237,242,255), anchor="mm")
+    draw.text((W//2, 710), symbol, font=_font(88, True), fill=(*accent,240), anchor="mm")
+    draw.text((W//2, 72), "ABE VAYN  /  MAFIA", font=_font(23, True), fill=(245,245,250,230), anchor="mm")
     return _png(im)
 
 def phase_card(phase):
     key = "night" if phase == "night" else "day"
     top, bottom, accent = PALETTES[key]
-    im = _gradient(top, bottom).convert("RGBA")
+    im = _background(top, bottom)
     draw = ImageDraw.Draw(im, "RGBA")
-    _ornaments(draw, accent)
-    cx, cy = W//2, 430
+    _city(draw, accent, 850)
+    _frame(draw, accent)
+    cx, cy = W//2, 420
     if key == "night":
-        draw.ellipse((cx-150, cy-150, cx+150, cy+150), fill=(*accent, 245))
-        draw.ellipse((cx-75, cy-190, cx+205, cy+85), fill=(*bottom, 255))
-        for x, y, r in [(170,220,7),(700,170,9),(760,450,6),(190,530,5),(590,620,7)]:
-            draw.ellipse((x-r,y-r,x+r,y+r), fill=(255,255,255,220))
+        draw.ellipse((cx-170,cy-170,cx+170,cy+170), fill=(*accent,235))
+        draw.ellipse((cx-85,cy-210,cx+225,cy+100), fill=(*bottom,255))
+        rng = random.Random(7)
+        for _ in range(75):
+            x, y = rng.randint(80,W-80), rng.randint(120,720)
+            r = rng.choice((2,3,4))
+            draw.ellipse((x-r,y-r,x+r,y+r), fill=(255,255,255,rng.randint(90,220)))
         title, sub = "TUN", "SHAHAR UYQUDA..."
+        symbol = "☾"
     else:
-        draw.ellipse((cx-145, cy-145, cx+145, cy+145), fill=(*accent, 255))
-        for a in range(0, 360, 45):
-            x1 = cx + math.cos(math.radians(a))*190
-            y1 = cy + math.sin(math.radians(a))*190
-            x2 = cx + math.cos(math.radians(a))*245
-            y2 = cy + math.sin(math.radians(a))*245
-            draw.line((x1,y1,x2,y2), fill=(*accent,220), width=13)
+        draw.ellipse((cx-145,cy-145,cx+145,cy+145), fill=(*accent,255))
+        for a in range(0,360,30):
+            x1=cx+math.cos(math.radians(a))*185
+            y1=cy+math.sin(math.radians(a))*185
+            x2=cx+math.cos(math.radians(a))*235
+            y2=cy+math.sin(math.radians(a))*235
+            draw.line((x1,y1,x2,y2), fill=(*accent,230), width=12)
         title, sub = "KUNDUZ", "SHAHAR UYG'ONDI!"
-    draw.text((cx, 820), title, font=_font(105, True), fill=(255,255,255,255), anchor="mm")
-    draw.text((cx, 930), sub, font=_font(32, True), fill=(*accent,255), anchor="mm")
-    draw.text((cx, 1080), "ABE VAYN  •  MAFIA", font=_font(28, True), fill=(*accent,255), anchor="mm")
+        symbol = "☀"
+    draw.rounded_rectangle((70,770,W-70,1050), radius=36, fill=(3,5,11,225), outline=(*accent,210), width=3)
+    draw.text((cx,845), title, font=_font(100,True), fill=(255,255,255,255), anchor="mm")
+    draw.text((cx,940), sub, font=_font(30,True), fill=(*accent,255), anchor="mm")
+    draw.text((cx,1080), "ABE VAYN  •  MAFIA", font=_font(27,True), fill=(*accent,255), anchor="mm")
     return _png(im)
 
 def welcome_card():
     top, bottom, accent = PALETTES["welcome"]
-    im = _gradient(top, bottom).convert("RGBA")
+    im = _background(top, bottom)
     draw = ImageDraw.Draw(im, "RGBA")
-    _ornaments(draw, accent)
+    _city(draw, accent, 930)
+    _frame(draw, accent)
     cx = W//2
-    draw.ellipse((cx-190, 200, cx+190, 580), fill=(4,6,13,100), outline=(*accent,180), width=5)
-    draw.polygon([(cx-240,520),(cx-150,360),(cx+150,360),(cx+240,520)], fill=(10,8,16,255))
-    draw.text((cx, 670), "ABE VAYN", font=_font(86, True), fill=(255,255,255,255), anchor="mm")
-    draw.text((cx, 780), "MAFIA", font=_font(112, True), fill=(*accent,255), anchor="mm")
-    draw.text((cx, 920), "ISHONCH  •  AQL  •  STRATEGIYA", font=_font(27, True), fill=(235,235,240,255), anchor="mm")
+    # Original noir king silhouette and red halo.
+    draw.ellipse((cx-210,175,cx+210,595), outline=(*accent,170), width=7)
+    draw.polygon([(cx-185,365),(cx-135,245),(cx+135,245),(cx+185,365)], fill=(2,3,8,255))
+    draw.polygon([(cx-185,365),(cx,330),(cx+185,365),(cx+125,395),(cx-125,395)], fill=(10,8,14,255))
+    draw.ellipse((cx-105,355,cx+105,565), fill=(10,9,14,255))
+    draw.polygon([(cx-300,870),(cx-205,570),(cx-100,520),(cx,665),(cx+100,520),(cx+205,570),(cx+300,870)], fill=(3,4,10,255))
+    draw.text((cx,755), "ABE VAYN", font=_font(82,True), fill=(255,255,255,255), anchor="mm")
+    draw.text((cx,875), "MAFIA", font=_font(112,True), fill=(*accent,255), anchor="mm")
+    draw.text((cx,1030), "ISHONCH  •  AQL  •  STRATEGIYA", font=_font(24,True), fill=(245,235,235,255), anchor="mm")
     return _png(im)
