@@ -767,15 +767,26 @@ class Game:
         else:
             return False
 
-        reveal = "\n".join(
+        winning_players = [
+            p for p in self.players.values()
+            if (
+                p.role == won_role
+                or (won_role == "civilian" and p.role != "mafia")
+            )
+        ]
+        winner_names = "\\n".join(
+            f"🏆 {self.player_link(p)}" for p in winning_players
+        ) or "—"
+        reveal = "\\n".join(
             f"{'💀' if not p.alive else '🟢'} {self.player_link(p)} — <b>{ROLE_NAMES[p.role]}</b>"
             for p in self.players.values()
         )
         await self.send(
-            f"🩸 <b>ABE VAYN — O‘YIN YAKUNLANDI</b>\n\n"
-            f"{winner}\n\n"
-            f"🎭 <b>HAQIQIY ROLLAR:</b>\n{reveal}\n\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🩸 <b>ABE VAYN — O‘YIN YAKUNLANDI</b>\\n\\n"
+            f"{winner}\\n\\n"
+            f"🏆 <b>G‘OLIBLAR:</b>\\n{winner_names}\\n\\n"
+            f"🎭 <b>HAQIQIY ROLLAR:</b>\\n{reveal}\\n\\n"
+            f"━━━━━━━━━━━━━━━━━━\\n"
             f"Yana bir raund uchun /game buyrug‘ini bering."
         )
 
@@ -800,6 +811,49 @@ async def is_group_admin(bot, chat_id, user_id):
         return member.status in ("administrator", "creator")
     except Exception:
         return False
+
+
+@router.message(Command("abe"))
+async def invite_random_players(message: Message):
+    if message.chat.type not in ("group", "supergroup") or not message.from_user:
+        await message.answer("📣 /abe buyrug‘ini guruh ichida ishlating.")
+        return
+
+    await db.save_group_user(message.chat.id, message.from_user)
+    candidates = await db.recent_group_users(message.chat.id, 300)
+    random.shuffle(candidates)
+
+    selected = []
+    for user_id, full_name in candidates:
+        if user_id == message.from_user.id:
+            continue
+        try:
+            member = await message.bot.get_chat_member(message.chat.id, user_id)
+            if member.status in ("left", "kicked"):
+                continue
+        except Exception:
+            continue
+        selected.append((user_id, full_name))
+        if len(selected) == 10:
+            break
+
+    if not selected:
+        await message.answer(
+            "📣 Hozircha chaqirish uchun tanish guruh a’zolari topilmadi. "
+            "A’zolar guruhda yozishgan sari ro‘yxat to‘planadi."
+        )
+        return
+
+    mentions = "\\n".join(
+        f"🎲 <a href=\\"tg://user?id={user_id}\\">{escape(name)}</a>"
+        for user_id, name in selected
+    )
+    await message.answer(
+        "📣 <b>ABE VAYN SIZNI O‘YINGA CHAQIRYAPTI!</b>\\n\\n"
+        "Tasodifiy tanlangan 10 tagacha guruh a’zosi:\\n"
+        f"{mentions}\\n\\n"
+        "🎭 Kim jasur? /game orqali o‘yinga qo‘shiling!"
+    )
 
 
 @router.message(Command("game"))
@@ -1173,6 +1227,8 @@ async def anti_advertising(message: Message):
         return
     if not message.from_user:
         return
+
+    await db.save_group_user(message.chat.id, message.from_user)
 
     if await is_group_admin(message.bot, message.chat.id, message.from_user.id):
         return
