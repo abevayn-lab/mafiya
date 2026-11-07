@@ -2,6 +2,8 @@ import os, logging
 from dotenv import load_dotenv
 load_dotenv()
 from aiogram import Bot, Dispatcher, F
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, CommandObject, Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -28,7 +30,7 @@ async def check_subscription(bot,user_id):
 
 async def main():
     await db.init_db()
-    bot=Bot(TOKEN)
+    bot=Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp=Dispatcher(storage=MemoryStorage())
     dp.include_router(game_router)
     dp.include_router(admin_router)
