@@ -18,7 +18,7 @@ from aiogram.types import (
     ChatPermissions,
 )
 from aiogram.types import BufferedInputFile
-from art import role_card
+from art import role_card, phase_card
 
 log = logging.getLogger("mafia.game")
 router = Router()
@@ -26,6 +26,7 @@ router = Router()
 GAMES = {}
 USER_GAME = {}
 PENDING_LAST_WORDS = {}
+LAST_WORD_GAMES = {}
 
 MAX_PLAYERS = 20
 MIN_PLAYERS_DEFAULT = 4
@@ -257,8 +258,21 @@ class Game:
             log.exception("Could not restore group chat permissions")
 
     async def send_phase_image(self, phase, caption, reply_markup=None):
-        # Group gameplay is text-only: no photos or videos are posted here.
-        return await self.send(caption, reply_markup=reply_markup)
+        """Post the illustrated day/night phase card to the game group."""
+        try:
+            card = BufferedInputFile(
+                phase_card(phase).getvalue(),
+                filename=f"abevayn_{phase}.png",
+            )
+            return await self.bot.send_photo(
+                chat_id=self.chat_id,
+                photo=card,
+                caption=caption,
+                reply_markup=reply_markup,
+            )
+        except Exception:
+            log.exception("Could not send phase artwork; using text fallback")
+            return await self.send(caption, reply_markup=reply_markup)
 
     async def remove_lobby_buttons(self):
         if self.lobby_message_id:
@@ -520,6 +534,7 @@ class Game:
                 f"💀 {self.player_link(dead)} halok bo‘ldi.\n"
                 f"🎭 Uning roli: <b>{ROLE_NAMES[dead.role]}</b>"
             )
+            LAST_WORD_GAMES[dead.user_id] = self
             try:
                 await self.bot.send_message(
                     dead.user_id,
@@ -944,14 +959,15 @@ async def last_word_choice(call: CallbackQuery):
         await call.answer("So‘rov noto‘g‘ri.", show_alert=True)
         return
 
-    game = GAMES.get(chat_id)
+    game = LAST_WORD_GAMES.get(call.from_user.id)
     player = game.players.get(call.from_user.id) if game else None
-    if not player or player.alive:
+    if not game or game.chat_id != chat_id or not player or player.alive:
         await call.answer("Bu so‘rov endi faol emas.", show_alert=True)
         return
 
     if choice == "yes":
-        PENDING_LAST_WORDS[call.from_user.id] = chat_id
+        PENDING_LAST_WORDS[call.from_user.id] = game
+        LAST_WORD_GAMES.pop(call.from_user.id, None)
         await call.answer("Yozishingiz mumkin.")
         await call.message.answer(
             "✍️ <b>SO‘NGGI SO‘ZINGIZNI YOZING</b>\n"
@@ -960,6 +976,7 @@ async def last_word_choice(call: CallbackQuery):
         )
     else:
         PENDING_LAST_WORDS.pop(call.from_user.id, None)
+        LAST_WORD_GAMES.pop(call.from_user.id, None)
         await call.answer("Mayli. O‘yinda qatnashganingiz uchun rahmat.")
 
 
@@ -969,8 +986,7 @@ async def last_word_choice(call: CallbackQuery):
     lambda message: bool(message.from_user and message.from_user.id in PENDING_LAST_WORDS),
 )
 async def publish_last_word(message: Message):
-    chat_id = PENDING_LAST_WORDS.pop(message.from_user.id, None)
-    game = GAMES.get(chat_id) if chat_id is not None else None
+    game = PENDING_LAST_WORDS.pop(message.from_user.id, None)
     if not game:
         await message.answer("O‘yin yakunlangan. So‘nggi so‘zingizni yuborib bo‘lmadi.")
         return
