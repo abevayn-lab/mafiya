@@ -41,13 +41,13 @@ async def main():
         if await db.is_blocked(message.from_user.id):
             await message.answer("⛔ Botdan foydalanishingiz cheklangan.")
             return
-        await join_from_start(message, command.args or "")
         missing=await check_subscription(bot,message.from_user.id)
         if missing:
             rows=[[InlineKeyboardButton(text="📢 "+title,url=link)] for title,link in missing if link]
             rows.append([InlineKeyboardButton(text="✅ Tekshirish",callback_data="sub:check")])
             await message.answer("Botdan foydalanish uchun quyidagi kanal(lar)ga obuna bo‘ling:",reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
             return
+        await join_from_start(message, command.args or "")
         kb=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🎮 O‘yin qoidalari",callback_data="info:rules")],
             [InlineKeyboardButton(text="📊 Statistika",callback_data="info:stats")],
@@ -84,9 +84,33 @@ async def main():
             return
         await call.answer()
 
+    @dp.message(Command("top"))
+    async def top_cmd(message: Message):
+        rows = await db.top_players(10)
+        if not rows:
+            await message.answer("🏆 Hozircha reyting bo‘sh. O‘yin o‘ynab ochko to‘plang!")
+            return
+        lines = ["🏆 <b>ABE VAYN MAFIA — TOP 10</b>", ""]
+        for i, row in enumerate(rows, 1):
+            name = row[1] or f"Player {row[0]}"
+            lines.append(f"{i}. {name} — <b>{row[2]} ochko</b> | 🏅 {row[3]} g‘alaba")
+        await message.answer("\n".join(lines))
+
+    @dp.message(Command("profile"))
+    async def profile_cmd(message: Message):
+        points, wins, games = await db.get_result(message.from_user.id)
+        rate = round((wins / games) * 100) if games else 0
+        await message.answer(
+            f"👤 <b>SIZNING PROFILINGIZ</b>\n\n"
+            f"🎯 Ochko: <b>{points}</b>\n"
+            f"🏆 G‘alaba: <b>{wins}</b>\n"
+            f"🎮 O‘yinlar: <b>{games}</b>\n"
+            f"📈 G‘alaba foizi: <b>{rate}%</b>"
+        )
+
     @dp.message(Command("help"))
     async def help_cmd(message):
-        await message.answer("/start — botni ochish\n/admin — admin panel (adminlar uchun)\n/guruhda /game — yangi o‘yin")
+        await message.answer("/start — botni ochish\n/game — guruhda o‘yin\n/players — o‘yinchilar\n/status — o‘yin holati\n/profile — profil\n/top — reyting\n/admin — admin panel")
 
     await dp.start_polling(bot)
 
