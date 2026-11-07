@@ -57,7 +57,7 @@ async def main():
         welcome_text = (
             "🎭 <b>ABE VAYN MAFIA</b>\n\n"
             "Xush kelibsiz! O‘yinni guruhga qo‘shing va guruhda /game buyrug‘ini bering.\n\n"
-            "👥 Kamida 5, ko‘pi bilan 20 o‘yinchi.\n"
+            "👥 Kamida 4, ko‘pi bilan 20 o‘yinchi.\n"
             "🏆 /top — reyting | 👤 /profile — shaxsiy statistika"
         )
         try:
