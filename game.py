@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+from pathlib import Path
 from collections import Counter
 from dataclasses import dataclass
 from html import escape
@@ -15,6 +16,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
 )
+from aiogram.types import FSInputFile
 
 log = logging.getLogger("mafia.game")
 router = Router()
@@ -231,7 +233,7 @@ class Game:
 
             await self.remove_lobby_buttons()
 
-            db.group_game(self.chat_id)
+            await db.group_game(self.chat_id)
 
             await self.assign_roles()
             await asyncio.sleep(3)
@@ -244,7 +246,7 @@ class Game:
                 if self.phase != "playing":
                     break
 
-                if self.check_winner():
+                if await self.check_winner():
                     break
 
                 await self.day()
@@ -311,9 +313,17 @@ class Game:
         )
 
         for p in self.players.values():
+            role_descriptions = {
+                "mafia": "Kechasi mafiya bilan birga hujum uchun nishon tanlang.",
+                "doctor": "Har kecha bir o‘yinchini himoya qiling.",
+                "detective": "Har kecha bir o‘yinchining mafiya ekanini tekshiring.",
+                "civilian": "Kunduz muhokama qiling va ovoz berib mafiyani toping.",
+            }
             text = (
-                f"🎭 Sizning rolingiz: "
-                f"<b>{ROLE_NAMES[p.role]}</b>"
+                f"🎭 <b>ABE VAYN MAFIA</b>\\n\\n"
+                f"Sizning rolingiz: <b>{ROLE_NAMES[p.role]}</b>\\n\\n"
+                f"{role_descriptions[p.role]}\\n\\n"
+                f"🤫 Roolingizni sir saqlang."
             )
 
             if p.role == "mafia":
@@ -331,7 +341,15 @@ class Game:
                     )
 
             try:
-                await self.bot.send_message(p.user_id, text)
+                card_path = Path("assets/roles") / f"{p.role}.jpg"
+                if card_path.is_file():
+                    await self.bot.send_photo(
+                        p.user_id,
+                        FSInputFile(card_path),
+                        caption=text,
+                    )
+                else:
+                    await self.bot.send_message(p.user_id, text)
             except Exception:
                 await self.send(
                     f"⚠️ {escape(p.name)} botga shaxsiy xabarda "
@@ -574,7 +592,7 @@ class Game:
 
         return "✅ Ovozingiz qabul qilindi."
 
-    def check_winner(self):
+    async def check_winner(self):
         alive_mafia = sum(
             p.alive and p.role == "mafia"
             for p in self.players.values()
@@ -596,7 +614,7 @@ class Game:
         else:
             return False
 
-        asyncio.create_task(self.send(winner))
+        await self.send(winner)
 
         for p in self.players.values():
             won = (
@@ -604,7 +622,7 @@ class Game:
                 or (won_role == "civilian" and p.role != "mafia")
             )
 
-            db.add_result(
+            await db.add_result(
                 p.user_id,
                 20 if won else 5,
                 won,
