@@ -254,7 +254,7 @@ class Game:
                 if self.phase != "playing":
                     break
 
-                if self.check_winner():
+                if await self.check_winner():
                     break
 
         except asyncio.CancelledError:
