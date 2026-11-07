@@ -623,6 +623,29 @@ class Game:
 
         counts = Counter(self.votes.values())
 
+        # Ovoz berish yakunida kim kimga ovoz berganini guruhga ko‘rsatish.
+        if self.votes:
+            vote_lines = []
+            for voter_id, target_id in self.votes.items():
+                voter = self.players.get(voter_id)
+                target = self.players.get(target_id)
+                if voter and target:
+                    vote_lines.append(
+                        f"• {self.player_link(voter)} ➜ {self.player_link(target)}"
+                    )
+            await self.send(
+                "🗳 <b>OVOZ BERISH NATIJALARI</b>\\n\\n"
+                + "\\n".join(vote_lines)
+                + "\\n\\n<b>Jami ovozlar:</b>\\n"
+                + "\\n".join(
+                    f"• {self.player_link(self.players[uid])}: <b>{count}</b> ta"
+                    for uid, count in counts.most_common()
+                    if uid in self.players
+                )
+            )
+        else:
+            await self.send("🗳 Bu kuni hech kim ovoz bermadi.")
+
         if counts:
             high = max(counts.values())
             winners = [
