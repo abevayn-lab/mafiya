@@ -225,3 +225,18 @@ async def remove_channel(chat_id):
             (str(chat_id),)
         )
         await db.commit()
+
+
+async def top_players(limit=10):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            """
+            SELECT u.user_id, u.full_name, r.points, r.wins, r.games
+            FROM game_results r
+            LEFT JOIN users u ON u.user_id = r.user_id
+            ORDER BY r.points DESC, r.wins DESC, r.games ASC
+            LIMIT ?
+            """,
+            (limit,)
+        )
+        return await cur.fetchall()
