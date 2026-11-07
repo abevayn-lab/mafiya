@@ -3,11 +3,11 @@
 A branded Uzbek-language Mafia game bot with original noir artwork.
 
 ## O‘yin imkoniyatlari
-- Guruhda `/game` bilan chiroyli rasmli o‘yin xonasi ochiladi.
+- Guruhda `/game` bilan toza, matnli o‘yin xonasi ochiladi; guruh chatiga o‘yin davomida rasm yoki video yuborilmaydi.
 - 4–20 o‘yinchi; ro‘yxat qo‘shilgan sari yangilanadi.
-- Har bir o‘yinchiga shaxsiy chatda o‘z roliga mos alohida karta yuboriladi.
+- Har bir o‘yinchiga shaxsiy chatda o‘z roliga mos alohida rasmli karta yuboriladi; qo‘shilish tugmasi botni ochib, START bosganda avtomatik qo‘shadi.
 - Rollar: Mafiya, Shifokor, Komissar va Tinch aholi.
-- Tun va kunduz bosqichlari alohida original rasmlar bilan ko‘rsatiladi.
+- Tun va kunduz bosqichlari guruhda ixcham matnli xabarlar bilan boshqariladi.
 - Mafiya hujumi, shifokor himoyasi, komissar tekshiruvi va kunduzgi ovoz berish.
 - O‘yin yakunida g‘olib jamoa va barcha o‘yinchilarning haqiqiy rollari e’lon qilinadi.
 - Profil, reyting, guruh statistikasi va admin panel.
