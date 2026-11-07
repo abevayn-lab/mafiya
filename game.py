@@ -102,7 +102,7 @@ class Game:
         mode = "⚡ Tezkor" if self.fast else "🎭 Oddiy"
 
         return (
-            f"🩸 <b>ABE VAYN MAFIA</b>\n"
+            f"🩸 <b>ABE VAYN</b>\n"
             f"<i>ISHONCH • AQL • STRATEGIYA</i>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"🎭 <b>YANGI O‘YIN XONASI</b>  {mode}\n\n"
@@ -662,7 +662,7 @@ class Game:
             for p in self.players.values()
         )
         await self.send(
-            f"🩸 <b>ABE VAYN MAFIA — O‘YIN YAKUNLANDI</b>\n\n"
+            f"🩸 <b>ABE VAYN — O‘YIN YAKUNLANDI</b>\n\n"
             f"{winner}\n\n"
             f"🎭 <b>HAQIQIY ROLLAR:</b>\n{reveal}\n\n"
             f"━━━━━━━━━━━━━━━━━━\n"
