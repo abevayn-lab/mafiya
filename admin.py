@@ -1,4 +1,5 @@
 import os
+from html import escape
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
@@ -53,7 +54,7 @@ async def admin_actions(call: CallbackQuery, state: FSMContext):
         if not rows:
             await call.message.answer("Hozircha foydalanuvchilar yo‘q.")
         else:
-            txt = "\n".join(f"{i+1}. {r[1]} — <code>{r[0]}</code>" + (f" (@{r[2]})" if r[2] else "") for i,r in enumerate(rows))
+            txt = "\n".join(f"{i+1}. {escape(str(r[1]))} — <code>{r[0]}</code>" + (f" (@{escape(str(r[2]))})" if r[2] else "") for i,r in enumerate(rows))
             await call.message.answer("👥 <b>Oxirgi foydalanuvchilar</b>\n" + txt)
     elif action == "broadcast":
         await state.set_state(AdminInput.broadcast)
@@ -75,7 +76,7 @@ async def admin_actions(call: CallbackQuery, state: FSMContext):
         await call.message.answer("O‘chiriladigan kanalning @username yoki ID sini yuboring.")
     elif action == "channels":
         rows = await db.channels()
-        await call.message.answer("📋 <b>Majburiy kanallar</b>\n" + ("\n".join(f"• {r[1]} — <code>{r[0]}</code>" for r in rows) if rows else "Hozircha kanal qo‘shilmagan."))
+        await call.message.answer("📋 <b>Majburiy kanallar</b>\n" + ("\n".join(f"• {escape(str(r[1]))} — <code>{r[0]}</code>" for r in rows) if rows else "Hozircha kanal qo‘shilmagan."))
     await call.answer()
 
 @router.message(Command("cancel"))
