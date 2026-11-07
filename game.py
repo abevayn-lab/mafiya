@@ -1034,3 +1034,37 @@ async def game_status(message: Message):
         f"🟢 Tiriklar: {len(game.alive())}\n"
         f"🔄 Raund: {game.round}"
     )
+
+@router.message(F.text | F.caption)
+async def anti_advertising(message: Message):
+    """Delete promotional links and forwarded promotions from non-admin members."""
+    if message.chat.type not in ("group", "supergroup"):
+        return
+    if not message.from_user:
+        return
+
+    if await is_group_admin(message.bot, message.chat.id, message.from_user.id):
+        return
+
+    text_value = message.text or message.caption or ""
+    lowered = text_value.lower()
+    has_link = (
+        "http://" in lowered
+        or "https://" in lowered
+        or "www." in lowered
+        or "t.me/" in lowered
+        or "telegram.me/" in lowered
+    )
+    entities = (message.entities or []) + (message.caption_entities or [])
+    has_link = has_link or any(
+        entity.type in ("url", "text_link")
+        for entity in entities
+    )
+    is_forwarded = message.forward_origin is not None
+
+    if has_link or is_forwarded:
+        try:
+            await message.delete()
+        except Exception:
+            log.exception("Could not delete advertisement in chat %s", message.chat.id)
+
