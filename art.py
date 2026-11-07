@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import math
 import random
 
-# ABE VAYN MAFIA — original premium noir artwork.
+# ABE VAYN — original premium noir artwork.
 W, H = 900, 1200
 PALETTES = {
     "mafia": ((5, 5, 12), (35, 5, 20), (255, 48, 75), (255, 135, 145)),
@@ -149,7 +149,7 @@ def role_card(role):
     _stars(draw, accent, seed=10)
     _city(draw, accent, 865, seed=11)
     _person(draw, role, accent)
-    _frame(draw, accent, "ABE VAYN  /  CLASSIFIED ROLE")
+    _frame(draw, accent, "ABE VAYN  •  MAXFIY ROL")
     name, subtitle, hint, symbol, quote = ROLE_DATA[role]
     _panel(draw, accent, (62,820,W-62,1128), 34)
     draw.text((W//2,865), "SIZNING ROLINGIZ", font=_font(30,True), fill=light+(255,), anchor="mm")
@@ -168,7 +168,7 @@ def phase_card(phase):
     draw = ImageDraw.Draw(im,"RGBA")
     _stars(draw,accent,seed=4 if key=="night" else 9,count=100)
     _city(draw,accent,865,seed=23)
-    _frame(draw,accent,"ABE VAYN  /  CITY CHRONICLE")
+    _frame(draw,accent,"ABE VAYN  •  SHAHAR TARIXI")
     cx,cy=W//2,405
     if key=="night":
         draw.ellipse((cx-165,cy-165,cx+165,cy+165),fill=light+(245,))
@@ -196,7 +196,7 @@ def welcome_card():
     draw=ImageDraw.Draw(im,"RGBA")
     _stars(draw,accent,seed=31,count=120)
     _city(draw,accent,900,seed=32)
-    _frame(draw,accent,"THE CITY NEVER SLEEPS")
+    _frame(draw,accent,"ABE VAYN  •  PRIVATE CLUB")
     cx=W//2
     # Red eclipse behind the boss silhouette.
     draw.ellipse((cx-220,165,cx+220,605),outline=(*accent,210),width=8)
