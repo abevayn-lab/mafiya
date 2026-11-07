@@ -17,7 +17,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
 )
 from aiogram.types import BufferedInputFile
-from art import role_card, phase_card
+from art import role_card, phase_card, welcome_card
 
 log = logging.getLogger("mafia.game")
 router = Router()
@@ -101,12 +101,14 @@ class Game:
         mode = "⚡ Tezkor" if self.fast else "🎭 Oddiy"
 
         return (
-            f"<b>🎭 MAFIA — YANGI O‘YIN!</b>\n"
-            f"{mode}\n\n"
+            f"🩸 <b>ABE VAYN MAFIA</b>\n"
+            f"<i>ISHONCH • AQL • STRATEGIYA</i>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🎭 <b>YANGI O‘YIN XONASI</b>  {mode}\n\n"
             f"👥 O‘yinchilar: <b>{len(self.players)}/{MAX_PLAYERS}</b>\n"
             f"{names}\n\n"
-            f"Kamida {self.min_players} kishi kerak.\n"
-            f"Qo‘shilish uchun tugmani bosing."
+            f"🔓 Boshlash uchun kamida <b>{self.min_players}</b> kishi kerak.\n"
+            f"👇 Pastdagi tugma orqali o‘yinga kiring."
         )
 
     def lobby_keyboard(self):
@@ -139,8 +141,8 @@ class Game:
     async def refresh_lobby(self):
         if self.lobby_message_id:
             try:
-                await self.bot.edit_message_text(
-                    self.lobby_text(),
+                await self.bot.edit_message_caption(
+                    caption=self.lobby_text(),
                     chat_id=self.chat_id,
                     message_id=self.lobby_message_id,
                     reply_markup=self.lobby_keyboard(),
@@ -651,9 +653,11 @@ class Game:
             for p in self.players.values()
         )
         await self.send(
+            f"🩸 <b>ABE VAYN MAFIA — O‘YIN YAKUNLANDI</b>\n\n"
             f"{winner}\n\n"
-            f"🎭 <b>O‘YIN OXIRIDAGI HAQIQIY ROLLAR:</b>\n"
-            f"{reveal}"
+            f"🎭 <b>HAQIQIY ROLLAR:</b>\n{reveal}\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"Yana bir raund uchun /game buyrug‘ini bering."
         )
 
         for p in self.players.values():
@@ -712,10 +716,19 @@ async def create_game(message: Message, command: CommandObject):
 
     GAMES[chat_id] = game
 
-    sent = await message.answer(
-        game.lobby_text(),
-        reply_markup=game.lobby_keyboard(),
-    )
+    try:
+        poster = BufferedInputFile(welcome_card().getvalue(), filename="abevayn_lobby.png")
+        sent = await message.answer_photo(
+            poster,
+            caption=game.lobby_text(),
+            reply_markup=game.lobby_keyboard(),
+        )
+    except Exception:
+        log.exception("Lobby poster could not be sent; using text fallback")
+        sent = await message.answer(
+            game.lobby_text(),
+            reply_markup=game.lobby_keyboard(),
+        )
 
     game.lobby_message_id = sent.message_id
     game.task = asyncio.create_task(game.run())
