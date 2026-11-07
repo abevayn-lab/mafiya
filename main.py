@@ -6,7 +6,8 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, CommandObject, Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, BufferedInputFile
+from art import welcome_card
 from aiogram.fsm.storage.memory import MemoryStorage
 import db
 from game import router as game_router, join_from_start
@@ -61,12 +62,17 @@ async def main():
             "🏆 /top — reyting | 👤 /profile — shaxsiy statistika"
         )
         try:
+            photo = BufferedInputFile(
+                welcome_card().getvalue(),
+                filename="abevayn_welcome.png",
+            )
             await message.answer_photo(
-                "https://api.dicebear.com/9.x/shapes/png?seed=AbeVaynMafia&backgroundColor=111827",
+                photo,
                 caption=welcome_text,
                 reply_markup=kb,
             )
         except Exception:
+            logging.exception("Welcome artwork could not be sent")
             await message.answer(welcome_text, reply_markup=kb)
 
     @dp.callback_query(F.data=="sub:check")
