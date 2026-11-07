@@ -108,7 +108,8 @@ class Game:
             f"👥 O‘yinchilar: <b>{len(self.players)}/{MAX_PLAYERS}</b>\n"
             f"{names}\n\n"
             f"🔓 Boshlash uchun kamida <b>{self.min_players}</b> kishi kerak.\n"
-            f"👇 Pastdagi tugma orqali o‘yinga kiring."
+            f"👇 <b>ROLNI OLISH UCHUN BOTGA O‘TING</b> tugmasini bosing.\n"
+            f"Bot ochilgach <b>START</b> bosing — siz avtomatik o‘yinga qo‘shilasiz."
         )
 
     def lobby_keyboard(self):
@@ -316,7 +317,8 @@ class Game:
         await self.send(
             "🎬 <b>O‘YIN BOSHLANDI!</b>\n"
             "🔐 Har bir o‘yinchi o‘z rolini botning shaxsiy chatida ko‘radi.\n"
-            f"👉 @{self.bot_username} botiga o‘ting va <code>/start</code> bosing.\n"
+            f"👉 <a href=\"https://t.me/{self.bot_username}\">ABE VAYN BOTINI OCHISH</a>\n"
+            "Botda <code>/start</code> bosing.\n"
             "🤫 Rollaringizni sir saqlang. Omad!"
         )
 
@@ -365,7 +367,7 @@ class Game:
                 except Exception:
                     await self.send(
                         f"⚠️ {escape(p.name)}, rolingizni olish uchun "
-                        f"@{self.bot_username} botiga o‘ting va <code>/start</code> bosing. "
+                        f"<a href=\"https://t.me/{self.bot_username}\">ABE VAYN BOTINI OCHING</a> va <code>/start</code> bosing. "
                         "Keyingi o‘yinda rol kartangiz shaxsiy yuboriladi."
                     )
 
