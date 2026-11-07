@@ -201,6 +201,31 @@ class Game:
             log.exception("Could not send group message")
             return None
 
+    async def send_phase_image(self, phase, caption, reply_markup=None):
+        colors = {
+            "night": "111827",
+            "day": "fef3c7",
+        }
+        seeds = {
+            "night": "AbeVaynMafiaMidnight",
+            "day": "AbeVaynMafiaSunrise",
+        }
+        url = (
+            "https://api.dicebear.com/9.x/shapes/png?seed="
+            + seeds[phase]
+            + "&backgroundColor="
+            + colors[phase]
+        )
+        try:
+            await self.bot.send_photo(
+                self.chat_id,
+                url,
+                caption=caption,
+                reply_markup=reply_markup,
+            )
+        except Exception:
+            await self.send(caption, reply_markup=reply_markup)
+
     async def remove_lobby_buttons(self):
         if self.lobby_message_id:
             try:
@@ -357,12 +382,15 @@ class Game:
                         caption=text,
                     )
                 else:
-                    # Generated role portrait keeps cards visual even before custom art is uploaded.
-                    await self.bot.send_photo(
-                        p.user_id,
-                        ROLE_IMAGE_URLS[p.role],
-                        caption=text,
-                    )
+                    # Use a generated portrait until custom role artwork is added to assets/roles.
+                    try:
+                        await self.bot.send_photo(
+                            p.user_id,
+                            ROLE_IMAGE_URLS[p.role],
+                            caption=text,
+                        )
+                    except Exception:
+                        await self.bot.send_message(p.user_id, text)
             except Exception:
                 await self.send(
                     f"⚠️ {escape(p.name)} botga shaxsiy xabarda "
@@ -399,10 +427,11 @@ class Game:
             if p.role in ("mafia", "doctor", "detective")
         }
 
-        await self.send(
-            f"🌙 <b>{self.round}-tun.</b>\n"
-            f"Maxsus rollar tanlovini shaxsiy xabarda bajarsin. "
-            f"({self.deadline_seconds['night']} soniya)"
+        await self.send_phase_image(
+            "night",
+            f"🌙 <b>{self.round}-TUN</b>\n"
+            f"Maxsus rollar tanlovni shaxsiy xabarda bajarsin. "
+            f"⏳ {self.deadline_seconds['night']} soniya"
         )
 
         for uid in self.expected_night:
@@ -539,10 +568,11 @@ class Game:
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=rows)
 
-        await self.send(
-            f"☀️ <b>{self.round}-kun.</b>\n"
+        await self.send_phase_image(
+            "day",
+            f"☀️ <b>{self.round}-KUN</b>\n"
             f"Muhokama qiling va ovoz bering. "
-            f"({self.deadline_seconds['day']} soniya)",
+            f"⏳ {self.deadline_seconds['day']} soniya",
             reply_markup=keyboard,
         )
 
