@@ -621,7 +621,9 @@ class Game:
 
     async def day(self):
         self.phase = "day"
-        await self.set_group_chat(discussion=True)
+        # Keep ordinary members muted throughout the whole game.
+        # Voting and night actions are handled by inline buttons.
+        await self.set_group_chat(discussion=False)
         self.votes = {}
         self.phase_event = asyncio.Event()
 
@@ -890,15 +892,30 @@ async def create_game(message: Message, command: CommandObject):
         fast=fast,
     )
 
-    GAMES[chat_id] = game
+    # Lock member chat messages as soon as /game is opened.
+    # Telegram admins remain able to write; players use the bot buttons.
+    locked = await game.set_group_chat(discussion=False)
+    if not locked:
+        await message.answer(
+            "⚠️ Guruh yozishmalarini yopib bo‘lmadi.\n"
+            "Botni guruhda admin qiling va <b>A’zolarni cheklash</b> "
+            "ruxsatini yoqing, keyin /game ni qayta bosing."
+        )
+        return
 
-    sent = await message.answer(
-        game.lobby_text(),
-        reply_markup=game.lobby_keyboard(),
-    )
-    game.lobby_message_id = sent.message_id
-    game.lobby_is_photo = False
-    game.task = asyncio.create_task(game.run())
+    GAMES[chat_id] = game
+    try:
+        sent = await message.answer(
+            game.lobby_text(),
+            reply_markup=game.lobby_keyboard(),
+        )
+        game.lobby_message_id = sent.message_id
+        game.lobby_is_photo = False
+        game.task = asyncio.create_task(game.run())
+    except Exception:
+        GAMES.pop(chat_id, None)
+        await game.restore_group_chat()
+        raise
 
 
 async def join_from_start(message: Message, args: str):
