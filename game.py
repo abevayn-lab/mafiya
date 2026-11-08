@@ -114,8 +114,7 @@ class Game:
             f"👥 O‘yinchilar: <b>{len(self.players)}/{MAX_PLAYERS}</b>\n"
             f"{names}\n\n"
             f"🔓 Boshlash uchun kamida <b>{self.min_players}</b> kishi kerak.\n"
-            f"👇 <b>ROLNI OLISH UCHUN BOTGA O‘TING</b> tugmasini bosing.\n"
-            f"Bot ochilgach <b>START</b> bosing — siz avtomatik o‘yinga qo‘shilasiz."
+            f"👇 O‘yinga qo‘shilish uchun pastdagi <b>QO‘SHILISH</b> knopkasini bosing."
         )
 
     def lobby_keyboard(self):
@@ -127,7 +126,7 @@ class Game:
         return InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="🔐 ROLNI OLISH UCHUN BOTGA O‘TISH",
+                    text="➕ QO‘SHILISH",
                     url=join_url,
                 )
             ],
