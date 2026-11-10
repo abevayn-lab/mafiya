@@ -134,15 +134,6 @@ class Game:
             ],
             [
                 InlineKeyboardButton(
-                    text=(
-                        "👑 O‘ZIMNI MAFIYA QILISH: "
-                        + ("YOQILGAN" if self.force_mafia_admin_id else "O‘CHIQ")
-                    ),
-                    callback_data=f"lobby:force_mafia:{self.chat_id}",
-                )
-            ],
-            [
-                InlineKeyboardButton(
                     text="▶️ Boshlash",
                     callback_data=f"lobby:start:{self.chat_id}",
                 )
@@ -933,6 +924,28 @@ async def create_game(message: Message, command: CommandObject):
         game.lobby_message_id = sent.message_id
         game.lobby_is_photo = False
         game.task = asyncio.create_task(game.run())
+
+        # Keep the Mafia override control private: send it only to the
+        # configured bot admin who opened this game.
+        if await is_admin(message.from_user.id):
+            try:
+                await message.bot.send_message(
+                    message.from_user.id,
+                    (
+                        "👑 <b>O‘YIN BOSHQARUVI</b>\\n"
+                        f"🎭 Guruh: <b>{escape(game.chat_title)}</b>\\n"
+                        "Bu yerdagi tugma faqat sizga ko‘rinadi. "
+                        "Yoqsangiz, shu o‘yinda o‘zingiz mafiya bo‘lasiz."
+                    ),
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                        InlineKeyboardButton(
+                            text="👑 O‘ZIMNI MAFIYA QILISH: O‘CHIQ",
+                            callback_data=f"lobby:force_mafia:{chat_id}",
+                        )
+                    ]]),
+                )
+            except Exception:
+                log.info("Could not send private Mafia control to admin %s", message.from_user.id)
     except Exception:
         GAMES.pop(chat_id, None)
         await game.restore_group_chat()
@@ -998,12 +1011,28 @@ async def lobby_force_mafia(call: CallbackQuery):
 
     if game.force_mafia_admin_id == call.from_user.id:
         game.force_mafia_admin_id = None
+        enabled = False
         await call.answer("Tasodifiy rollar rejimi yoqildi.")
     else:
         game.force_mafia_admin_id = call.from_user.id
+        enabled = True
         await call.answer("Siz mafiya bo‘lasiz. Qolgan rollar tasodifiy.")
 
-    await game.refresh_lobby()
+    # Update only the private control message; the group lobby has no such button.
+    try:
+        await call.message.edit_reply_markup(
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(
+                    text=(
+                        "👑 O‘ZIMNI MAFIYA QILISH: "
+                        + ("YOQILGAN" if enabled else "O‘CHIQ")
+                    ),
+                    callback_data=f"lobby:force_mafia:{chat_id}",
+                )
+            ]])
+        )
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data.startswith("lobby:start:"))
