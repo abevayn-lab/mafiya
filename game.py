@@ -8,6 +8,7 @@ from html import escape
 from contextlib import suppress
 
 import db
+from admin import is_admin
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
@@ -64,6 +65,7 @@ class Game:
         self.chat_id = chat_id
         self.chat_title = chat_title or "Guruh"
         self.host_id = host_id
+        self.force_mafia_admin_id = None
         self.fast = fast
         self.min_players = min_players
 
@@ -128,6 +130,15 @@ class Game:
                 InlineKeyboardButton(
                     text="➕ QO‘SHILISH",
                     url=join_url,
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=(
+                        "👑 O‘ZIMNI MAFIYA QILISH: "
+                        + ("YOQILGAN" if self.force_mafia_admin_id else "O‘CHIQ")
+                    ),
+                    callback_data=f"lobby:force_mafia:{self.chat_id}",
                 )
             ],
             [
@@ -373,6 +384,17 @@ class Game:
         roles += ["civilian"] * (count - len(roles))
 
         random.shuffle(roles)
+
+        # Optional admin-only override: keep every other role random,
+        # but swap the selected admin into the Mafia slot.
+        if self.force_mafia_admin_id is not None:
+            selected_admin = self.players.get(self.force_mafia_admin_id)
+            if selected_admin is not None:
+                mafia_index = roles.index("mafia")
+                selected_index = list(self.players).index(self.force_mafia_admin_id)
+                roles[mafia_index], roles[selected_index] = (
+                    roles[selected_index], roles[mafia_index]
+                )
 
         for player, role in zip(self.players.values(), roles):
             player.role = role
@@ -949,6 +971,39 @@ async def join_from_start(message: Message, args: str):
     }
 
     await message.answer(messages.get(result, "Xatolik yuz berdi."))
+
+
+
+@router.callback_query(F.data.startswith("lobby:force_mafia:"))
+async def lobby_force_mafia(call: CallbackQuery):
+    try:
+        chat_id = int(call.data.split(":")[2])
+    except (ValueError, IndexError):
+        await call.answer("So‘rov noto‘g‘ri.", show_alert=True)
+        return
+
+    game = GAMES.get(chat_id)
+    if not game or game.phase != "lobby":
+        await call.answer("Bu o‘yin xonasi endi faol emas.", show_alert=True)
+        return
+
+    # Only configured bot admins may enable this option.
+    if not await is_admin(call.from_user.id):
+        await call.answer("Bu imkoniyat faqat bot administratori uchun.", show_alert=True)
+        return
+
+    if call.from_user.id not in game.players:
+        await call.answer("Avval o‘zingiz o‘yinga qo‘shiling.", show_alert=True)
+        return
+
+    if game.force_mafia_admin_id == call.from_user.id:
+        game.force_mafia_admin_id = None
+        await call.answer("Tasodifiy rollar rejimi yoqildi.")
+    else:
+        game.force_mafia_admin_id = call.from_user.id
+        await call.answer("Siz mafiya bo‘lasiz. Qolgan rollar tasodifiy.")
+
+    await game.refresh_lobby()
 
 
 @router.callback_query(F.data.startswith("lobby:start:"))
