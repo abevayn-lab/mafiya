@@ -7,6 +7,7 @@ from html import escape
 from aiogram import F, Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command
+from aiogram.exceptions import TelegramRetryAfter
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup,
 )
@@ -147,20 +148,9 @@ async def send_selected_player(call: CallbackQuery, session, chat_id: int, headi
         + wheel_names + "\n\n🔄 Aylanmoqda..."
     )
     await call.answer("G‘ildirak aylanmoqda!")
-    for frame in (
-        "🎡 🔴 ⚪ 🔵 ⚪",
-        "🔄 ⚪ 🔴 ⚪ 🔵",
-        "🎡 🔵 ⚪ 🔴 ⚪",
-        "🔄 ⚪ 🔵 ⚪ 🔴",
-    ):
-        await asyncio.sleep(0.5)
-        try:
-            await wheel_message.edit_text(
-                "🎡 <b>ODAM TANLASH G‘ILDIRAGI</b>\n\n"
-                + wheel_names + f"\n\n{frame}"
-            )
-        except Exception:
-            pass
+    # Avoid rapid EditMessageText calls: Telegram applies per-chat flood limits.
+    # Keep a short visual pause, then publish the final selected player once.
+    await asyncio.sleep(1.5)
 
     link = (
         f"https://t.me/{session['bot_username']}"
@@ -173,14 +163,22 @@ async def send_selected_player(call: CallbackQuery, session, chat_id: int, headi
             callback_data=f"shart:spin:{chat_id}",
         )],
     ])
-    await wheel_message.edit_text(
-        f"🎉 <b>{heading}</b>\n\n"
-        f"👤 Tanlangan odam: {mention(selected, name)}\n\n"
+    result_text = (
+        f"🎉 <b>{heading}</b>\\n\\n"
+        f"👤 Tanlangan odam: {mention(selected, name)}\\n\\n"
         "Endi guruhdagilar “Shart yozish” tugmasini bosib, "
-        "botning shaxsiy chatiga shart yuborishsin.\n"
-        "Shartlar yig‘ilgach, admin “Shartlarni aylantirish” tugmasini bosadi.",
-        reply_markup=buttons,
+        "botning shaxsiy chatiga shart yuborishsin.\\n"
+        "Shartlar yig‘ilgach, admin “Shartlarni aylantirish” tugmasini bosadi."
     )
+    try:
+        await wheel_message.edit_text(result_text, reply_markup=buttons)
+    except TelegramRetryAfter as exc:
+        log.warning(
+            "Telegram flood control in %s; retrying final wheel update in %s seconds",
+            chat_id, exc.retry_after,
+        )
+        await asyncio.sleep(exc.retry_after + 1)
+        await wheel_message.edit_text(result_text, reply_markup=buttons)
 
 
 @router.callback_query(F.data.startswith("shart:pick:"))
