@@ -11,6 +11,7 @@ from art import welcome_card
 from aiogram.fsm.storage.memory import MemoryStorage
 import db
 from game import router as game_router, join_from_start, is_group_admin
+from shart import router as shart_router, handle_start as handle_shart_start
 from admin import router as admin_router, is_admin
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL","INFO"))
@@ -34,6 +35,7 @@ async def main():
     await db.init_db()
     bot=Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp=Dispatcher(storage=MemoryStorage())
+    dp.include_router(shart_router)
     dp.include_router(game_router)
     dp.include_router(admin_router)
 
@@ -73,6 +75,11 @@ async def main():
                 "Botdan foydalanish uchun quyidagi kanal(lar)ga obuna bo‘ling:",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
             )
+            return
+
+        # Deep-link for Shart Chambalagi: accept a private condition submission.
+        if command.args and command.args.startswith("shart_"):
+            await handle_shart_start(message, command.args)
             return
 
         # Deep-link join: add player, confirm, and do not send a second welcome card.
@@ -177,7 +184,7 @@ async def main():
     async def help_cmd(message):
         if message.chat.type != "private" and not await is_group_admin(bot, message.chat.id, message.from_user.id):
             return
-        await message.answer("/start — botni ochish\n/game — guruhda o‘yin\n/players — o‘yinchilar\n/status — o‘yin holati\n/profile — profil\n/top — reyting\n/myid — Telegram ID\n/admin — admin panel")
+        await message.answer("/start — botni ochish\n/game — Mafia o‘yini\n/shart — Shart chambaragini boshlash (guruh admini)\n/shartstop — Shart o‘yinini to‘xtatish\n/players — o‘yinchilar\n/status — o‘yin holati\n/profile — profil\n/top — reyting\n/myid — Telegram ID\n/admin — admin panel")
 
     await dp.start_polling(bot)
 
