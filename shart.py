@@ -311,21 +311,8 @@ async def spin_conditions(call: CallbackQuery):
         + wheel_lines + "\n\n🔄 Aylanmoqda..."
     )
     await call.answer("Shartlar g‘ildiragi aylanmoqda!")
-    for frame in (
-        "🎡 🔴 ⚪ 🔵 ⚪",
-        "🔄 ⚪ 🔴 ⚪ 🔵",
-        "🎡 🔵 ⚪ 🔴 ⚪",
-        "🔄 ⚪ 🔵 ⚪ 🔴",
-        "🎡 🔴 ⚪ 🔵 ⚪",
-    ):
-        await asyncio.sleep(0.55)
-        try:
-            await wheel.edit_text(
-                "🎡 <b>SHARTLAR G‘ILDIRAGI</b>\n\n"
-                + wheel_lines + f"\n\n{frame}"
-            )
-        except Exception:
-            pass
+    # One final edit is enough; rapid frame edits trigger Telegram flood control.
+    await asyncio.sleep(1.5)
 
     chosen = random.choice(conditions)
     session["chosen_condition"] = chosen
@@ -349,7 +336,15 @@ async def spin_conditions(call: CallbackQuery):
             callback_data=f"shart:next:{chat_id}",
         )],
     ])
-    await wheel.edit_text(result, reply_markup=keyboard)
+    try:
+        await wheel.edit_text(result, reply_markup=keyboard)
+    except TelegramRetryAfter as exc:
+        log.warning(
+            "Telegram flood control in %s; retrying condition result in %s seconds",
+            chat_id, exc.retry_after,
+        )
+        await asyncio.sleep(exc.retry_after + 1)
+        await wheel.edit_text(result, reply_markup=keyboard)
 
 
 @router.callback_query(F.data.startswith("shart:done:"))
