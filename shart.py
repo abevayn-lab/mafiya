@@ -352,7 +352,7 @@ async def spin_conditions(call: CallbackQuery):
 
 @router.callback_query(F.data.startswith("shart:done:"))
 async def confirm_condition(call: CallbackQuery):
-    _, _, _, chat_raw, target_raw = call.data.split(":")
+    _, _, chat_raw, target_raw = call.data.split(":")
     chat_id, target_id = int(chat_raw), int(target_raw)
     session = SESSIONS.get(chat_id)
     if not session or session["phase"] != "done" or session.get("selected") != target_id:
