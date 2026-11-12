@@ -18,6 +18,7 @@ SESSIONS = {}  # chat_id -> active round/session
 PENDING = {}   # user_id -> (chat_id, selected_user_id)
 MAX_PLAYERS = 50
 MAX_CONDITION = 250
+MAX_CONDITIONS = 20
 
 
 def mention(user_id: int, name: str) -> str:
@@ -260,6 +261,9 @@ async def receive_condition(message: Message):
     if len(condition) > MAX_CONDITION:
         await message.answer(f"❌ Shart {MAX_CONDITION} belgidan oshmasin.")
         return
+    if len(session["conditions"]) >= MAX_CONDITIONS:
+        await message.answer(f"Bu turda ko‘pi bilan {MAX_CONDITIONS} ta shart qabul qilinadi.")
+        return
     if message.from_user.id == target_id:
         await message.answer("Siz tanlangan odamsiz, bu turda shart yubora olmaysiz.")
         return
@@ -301,7 +305,7 @@ async def spin_conditions(call: CallbackQuery):
     session["phase"] = "spinning"
     conditions = list(session["conditions"])
     wheel_lines = "\n".join(
-        f"{i}. {escape(item['text'])}"
+        f"{i}. {escape(item['text'][:150])}"
         for i, item in enumerate(conditions, 1)
     )
     wheel = await call.message.answer(
